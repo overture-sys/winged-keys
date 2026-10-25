@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0 beta (unreleased)
+- **Approve** key: shows the approval request an Ask run is waiting on (the command, or what the agent wants to do) and approves it **once** when you press it. Never answers on its own, never chooses "session" or "always", and ignores a press in the first 1.5 seconds after a new request appears. Can be set to **Deny** instead.
+- Uses Hermes's `POST /v1/runs/{id}/approval` with the exact request id (and execution generation on current Hermes).
+
 ## 0.10.0 beta (2026-10-25)
 - **Agent** key: switch which Hermes agent (profile) the keys talk to. Requests go to `/p/<agent>/` with that agent's own key.
 - **New chat** key, and a per-key **Continue the conversation** option for Ask keys.

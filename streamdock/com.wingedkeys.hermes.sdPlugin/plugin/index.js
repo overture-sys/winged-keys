@@ -103,6 +103,7 @@ const ICONS = {
   open: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
   agent: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>',
   session: '<path d="M4 5h16v10H9l-5 4z"/><path d="M12 7.5v5M9.5 10h5"/>',
+  approve: '<path d="M12 3l7 3v5c0 4.5-3 7.8-7 10-4-2.2-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
 };
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -187,7 +188,32 @@ function iconFace(kind, color, title) {
   return frame(stack(items), { value: '', label: title });
 }
 
-module.exports = { PAL, valueFace, statusFace, iconFace, setTextSize };
+// Splits text into at most n lines of about w characters, breaking at spaces where it can.
+function wrap(str, w, n) {
+  const words = String(str).split(' ').filter(Boolean), lines = [];
+  let cur = '';
+  for (let word of words) {
+    while (word.length > w) { if (cur) { lines.push(cur); cur = ''; } lines.push(word.slice(0, w)); word = word.slice(w); }
+    if (!cur) cur = word;
+    else if (cur.length + 1 + word.length <= w) cur += ' ' + word;
+    else { lines.push(cur); cur = word; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > n) { lines.length = n; lines[n - 1] = lines[n - 1].slice(0, w - 3) + '...'; }
+  return lines;
+}
+
+// A request to read before answering it: a heading, the text (up to 3 lines) and a footer.
+// The text keeps its own letter case, since commands are case-sensitive.
+function previewFace(color, head, body, foot) {
+  const lines = wrap(body, Math.round(16 / Math.sqrt(S)), 3);
+  const items = [{ str: String(head).toUpperCase(), size: 15 * S, color, spacing: 0.08 }];
+  lines.forEach((l, i) => items.push({ str: l, size: 11 * S, color: PAL.text, weight: 500, gap: i === 0 ? 10 * S : 5 * S }));
+  if (foot) items.push({ str: String(foot).toUpperCase(), size: 10 * S, color: PAL.muted, weight: 500, spacing: 0.08, gap: 8 * S });
+  return frame(stack(items), { value: lines.join(' '), label: head });
+}
+
+module.exports = { PAL, valueFace, statusFace, iconFace, previewFace, setTextSize };
 
 return module.exports;})();
 // Winged Keys - Stream Dock plugin. Not made by or affiliated with Nous Research.
@@ -283,7 +309,7 @@ function show(context, color, title) {
 }
 function label(context) {
   const c = ctx.get(context); if (!c) return '';
-  return c.settings.label || ({ status: 'Hermes', ask: 'Ask', stop: 'Stop', open: 'Open', platforms: 'Platforms', session: 'New chat' })[c.action] || '';
+  return c.settings.label || ({ status: 'Hermes', ask: 'Ask', stop: 'Stop', open: 'Open', platforms: 'Platforms', session: 'New chat', approve: 'Approve' })[c.action] || '';
 }
 function initKey(context) {
   const c = ctx.get(context); if (!c) return;
@@ -294,6 +320,7 @@ function initKey(context) {
   else if (c.action === 'ask') show(context, runs.has(context) ? COLORS.blue : COLORS.grey, runs.has(context) ? 'working' : label(context) + agentLine());
   else if (c.action === 'agent') show(context, COLORS.grey, agentName() + '\nagent');
   else if (c.action === 'session') show(context, COLORS.grey, label(context) + agentLine());
+  else if (c.action === 'approve') showApprove(context);
   else show(context, COLORS.red, label(context));
 }
 
@@ -589,7 +616,7 @@ async function ask(context) {
   if (runs.has(context)) return send({ event: 'showAlert', context });
   const rec = { runId: null, stopped: false };
   runs.set(context, rec);
-  const release = () => { if (runs.get(context) === rec) runs.delete(context); };
+  const release = () => { if (runs.get(context) === rec) { runs.delete(context); refreshApproveKeys(); } };
   try { await askClaimed(context, rec, release); }
   catch (e) { release(); send({ event: 'showAlert', context }); show(context, COLORS.red, 'failed'); setTimeout(() => initKey(context), 4000); }
 }
@@ -629,11 +656,15 @@ async function askClaimed(context, rec, release) {
       const r = await api('/v1/runs/' + encodeURIComponent(runId), { agent });
       const st = r.json && r.json.status;
       if (['completed', 'failed', 'cancelled', 'interrupted'].includes(st)) { final = r.json; break; }
-      // Waiting on the user (approval or clarification): show it; approving is done in the WebUI/app, never blind from a key.
+      // Waiting on the user (approval or clarification): show it. Approving is done in the WebUI/app,
+      // or from an Approve key that shows the request first; never automatically.
+      const approval = readApproval(r.json);
+      if ((approval && approval.id) !== (rec.approval && rec.approval.id)) { rec.approval = approval; refreshApproveKeys(); }
       const pc = r.json && r.json.pending_controls;
       const waiting = st === 'waiting_for_approval' || (Array.isArray(pc) ? pc.length > 0 : !!(pc && Object.keys(pc).length));
       if (waiting !== rec.waiting) { rec.waiting = waiting; show(context, waiting ? COLORS.amber : COLORS.blue, waiting ? 'needs OK' : 'working'); }
     }
+    rec.approval = null;
     release();
     if (rec.stopped) { show(context, COLORS.grey, 'stopped'); return setTimeout(() => initKey(context), 3000); }
     if (!final) { api('/v1/runs/' + encodeURIComponent(runId) + '/stop', { method: 'POST', agent }).catch(() => {}); throw new Error('timeout'); }
@@ -682,6 +713,77 @@ function onKey(context, kind) {
   else if (kind === 'stop') stopAll(context);
   else if (kind === 'agent') nextAgent(context);
   else if (kind === 'session') newChat(context);
+  else if (kind === 'approve') approvePress(context);
+}
+
+// ---- Approve key: shows the approval request an Ask run is waiting on, and answers it only when pressed.
+// Only runs started from these keys are watched. The answer is always "once" (or "deny" when the key is
+// set to deny), never "session" or "always", and only for the exact request the key has been showing
+// for at least ARM_MS, so a request that appears just as the key is pressed is never approved unseen.
+const ARM_MS = 1500;
+const shown = new Map(); // approve key context -> { id, at }: the request on screen and since when
+function cleanText(s, max) { return String(s || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max); }
+// The pending approval in a GET /v1/runs/<id> body: canonical Hermes lists it in pending_controls
+// (answered with request_id + execution_generation); older gateways put it in "approval" (request_id).
+// Hermes redacts secrets from the command before sending it. Clarify questions are not approvals.
+function readApproval(j) {
+  if (!j || j.status !== 'waiting_for_approval') return null;
+  const pc = Array.isArray(j.pending_controls) ? j.pending_controls.find((p) => p && p.kind === 'approval') : null;
+  const a = pc || (j.approval && typeof j.approval === 'object' ? j.approval : null);
+  if (!a) return null;
+  const id = pc ? pc.prompt_id : a.request_id;
+  if (typeof id !== 'string' || !id || id.length > 256) return null;
+  if (pc && !Number.isInteger(pc.execution_generation)) return null;
+  return { id, generation: pc ? pc.execution_generation : null, canonical: !!pc,
+    command: cleanText(a.command, 300), description: cleanText(a.description, 300),
+    choices: Array.isArray(a.choices) ? a.choices.filter((x) => typeof x === 'string') : null };
+}
+function pendingApprovals() { return [...runs.values()].filter((rec) => rec.runId && rec.approval); }
+function refreshApproveKeys() { for (const [c, v] of ctx) if (v.action === 'approve') showApprove(c); }
+function denyMode(c) { return c.settings.denyMode === true || c.settings.denyMode === 'true'; }
+function showApprove(context) {
+  const c = ctx.get(context); if (!c || c.busy) return;
+  const list = pendingApprovals();
+  const name = c.settings.label || (denyMode(c) ? 'Deny' : 'Approve');
+  if (!list.length) { shown.delete(context); return show(context, COLORS.grey, name + '\nnothing'); }
+  const rec = list[0], a = rec.approval;
+  const prev = shown.get(context);
+  if (!prev || prev.id !== a.id) shown.set(context, { id: a.id, at: Date.now() });
+  const head = denyMode(c) ? 'Deny?' : 'Approve?';
+  const what = a.command || a.description || 'request';
+  const foot = list.length > 1 ? '1 of ' + list.length : (rec.agent || '');
+  if (isEncoder(context)) return feedback(context, head, what.slice(0, 40), COLORS.amber);
+  send({ event: 'setImage', context, payload: { target: 0, image: FACE.previewFace(denyMode(c) ? COLORS.red : COLORS.amber, head, what, foot) } });
+  send({ event: 'setTitle', context, payload: { target: 0, title: '' } });
+}
+async function approvePress(context) {
+  const c = ctx.get(context); if (!c || c.busy) return;
+  const rec = pendingApprovals()[0];
+  const a = rec && rec.approval, seen = shown.get(context);
+  // Nothing waiting, or the request on the key changed (or only just appeared): show it, don't answer it.
+  if (!a || !seen || seen.id !== a.id || Date.now() - seen.at < ARM_MS) { showApprove(context); return send({ event: 'showAlert', context }); }
+  const choice = denyMode(c) ? 'deny' : 'once';
+  if (a.choices && !a.choices.includes(choice)) return send({ event: 'showAlert', context });
+  c.busy = true;
+  const agent = rec.agent || '', base = '/v1/runs/' + encodeURIComponent(rec.runId);
+  try {
+    // Ask Hermes again: answer only if this exact request is still the one waiting.
+    const now = await api(base, { agent });
+    const cur = readApproval(now.json);
+    if (!cur || cur.id !== a.id || cur.generation !== a.generation) { rec.approval = cur; throw Object.assign(new Error('changed'), { code: 'CHANGED' }); }
+    const body = a.canonical ? { request_id: a.id, execution_generation: a.generation, choice } : { request_id: a.id, choice };
+    const r = await api(base + '/approval', { method: 'POST', body, agent });
+    if (!r.ok) throw Object.assign(new Error('http ' + r.status), { code: r.status === 409 ? 'GONE' : 'HTTP' });
+    if (rec.approval && rec.approval.id === a.id) rec.approval = null;
+    shown.delete(context);
+    dlog('approval answered: ' + choice);
+    send({ event: 'showOk', context });
+    show(context, choice === 'deny' ? COLORS.red : COLORS.green, choice === 'deny' ? 'denied' : 'approved');
+  } catch (e) {
+    send({ event: 'showAlert', context });
+    show(context, e.code === 'HTTP' ? COLORS.red : COLORS.amber, e.code === 'REMOTE' ? 'local only' : e.code === 'CHANGED' ? 'changed' : e.code === 'GONE' ? 'gone' : 'failed');
+  }
+  setTimeout(() => { c.busy = false; refreshApproveKeys(); }, 2000);
 }
 
 // ---- Agent key: cycles through your Hermes agents; Ask, Stop, Status and New chat follow it.

@@ -21,7 +21,8 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 | Key | What it shows / does |
 |---|---|
 | **Status** | Green: Hermes is up and your API key works. Amber: no key, bad key, or a non-local address. Red: Hermes is off. |
-| **Ask** | Sends the key's preset prompt to Hermes as a run, waits, and saves the reply as a Markdown file. Optional: add your clipboard text to the prompt. Shows *needs OK* when the agent is waiting for your approval (approve it in your Hermes app or WebUI). |
+| **Ask** | Sends the key's preset prompt to Hermes as a run, waits, and saves the reply as a Markdown file. Optional: add your clipboard text to the prompt. Shows *needs OK* when the agent is waiting for your approval (approve it with an **Approve** key, or in your Hermes app or WebUI). |
+| **Approve** | When an Ask run is waiting for your OK, shows what the agent wants to run (for example `rm -rf build`). Press to approve it **once**. Can be set to **Deny** instead. A press right after a new request appears only shows it, so nothing is approved unseen. |
 | **Stop** | Stops Ask runs in progress. |
 | **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats, all agents added up or one agent; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off starts the dashboard. |
 | **Platforms** | How many Hermes connections are up, e.g. `4/4`. Turns red and names the one that dropped. |
@@ -71,7 +72,7 @@ Hermes serves every agent (profile) on the same port, and each named agent check
 - Usage keys read the dashboard's session token from the dashboard page the same way your browser does, keep it in memory only, and never display it.
 - **Read key from Hermes** opens your Hermes `.env` (the standard location, or one you set) and copies only the `API_SERVER_KEY` line into the plugin's settings. It runs only when you click it and confirm a warning. Network paths are refused. Use it only on your own computer.
 - Clipboard Ask sends whatever you have copied to the agent. Don't use it with passwords on the clipboard.
-- The plugin never approves agent actions for you.
+- The plugin never approves agent actions for you. The **Approve** key answers only when you press it, only for the exact request it has been showing for at least 1.5 seconds (checked with Hermes again just before answering), only for runs started from your own Ask keys, and only with *once* or *deny*, never *always*. The command preview comes from Hermes, which removes secrets from it first; it is not written to the log.
 - The plugin starts programs only with fixed arguments and never through a shell: hermes.exe with `dashboard --no-open --port <port>` (the hermes.exe path is the standard one or the full path you set), the OS clipboard reader, and the OS "open file" command for its own reply files.
 
 ## Known limits
@@ -93,6 +94,8 @@ No dependencies. Node 20+.
 node build.js        # writes plugin/index.js into both builds
 node test/test.js    # 60+ checks against a fake Hermes and a fake Stream Dock
 node test/models.js  # per-controller checks: keys, touch strip, Stream Dock knobs, Stream Deck+ dials
+node test/agents.js  # Agent key, per-agent routing and keys, New chat
+node test/approve.js # Approve key: preview, deliberate press only, exact request, once/deny only
 PLUGIN=elgato/com.wingedkeys.hermes.sdPlugin node test/test.js
 PLUGIN=elgato/com.wingedkeys.hermes.sdPlugin node test/models.js
 ```
