@@ -6,7 +6,7 @@
   "Category": "Winged Keys",
   "CategoryIcon": "static/category.png",
   "Icon": "static/plugin.png",
-  "Version": "0.10.0",
+  "Version": "0.11.0",
   "CodePathWin": "plugin/index.js",
   "CodePathMac": "plugin/index.js",
   "URL": "",
@@ -182,6 +182,28 @@
       "Name": "New chat",
       "Tooltip": "Starts a fresh conversation for the current agent.",
       "Icon": "static/session.png",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Information",
+        "Knob"
+      ],
+      "States": [
+        {
+          "Image": "static/key-idle.png",
+          "TitleAlignment": "bottom",
+          "FontSize": "9"
+        }
+      ]
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.model",
+      "Name": "Model",
+      "Tooltip": "Switches which model Hermes uses for Ask keys (Hermes's default or one you list).",
+      "Icon": "static/model.png",
       "DisableAutomaticStates": true,
       "SupportedInMultiActions": false,
       "UserTitleEnabled": false,

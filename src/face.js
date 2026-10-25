@@ -18,6 +18,7 @@ const ICONS = {
   open: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
   agent: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>',
   session: '<path d="M4 5h16v10H9l-5 4z"/><path d="M12 7.5v5M9.5 10h5"/>',
+  model: '<rect x="7" y="7" width="10" height="10" rx="1"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/>',
 };
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

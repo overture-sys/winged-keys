@@ -28,6 +28,7 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 | **Open** | Opens the Hermes WebUI, the Hermes dashboard, the latest Ask reply, or a web address you set. |
 | **Agent** | Switches which Hermes agent (profile) the keys talk to, for example Morpheus or The Chef. Ask, Stop, Status and New chat follow it. |
 | **New chat** | Starts a fresh conversation for the current agent. Ask keys set to *continue the conversation* keep Hermes's memory between presses until you press it. |
+| **Model** | Switches which model Hermes uses for Ask keys: Hermes's own default, or one of the models you list in the key's settings. Turning a dial steps both ways. Each reply file names the model that answered. |
 
 ## Requirements
 
@@ -62,6 +63,20 @@ Hermes serves every agent (profile) on the same port, and each named agent check
 2. Restart the Hermes gateway.
 3. In the settings panel, click **⚠ Read key from Hermes**. It picks up the main key and each agent's key, and tells you which agents still need one.
 
+## Switching models
+
+Hermes has no API call that changes its default model. Instead, each Ask run can name the model it wants, and Hermes uses it for that run ([API server docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/api-server)). The **Model** key picks which model Ask keys name.
+
+1. Drag a **Model** key onto your deck and click it.
+2. List your models, one per line: `provider:model` (for example `openrouter:anthropic/claude-sonnet-4.6`) or just the model name. Use the names your Hermes `/model` command accepts. A model with a colon in its own name (like `llama3:8b`) needs its provider in front.
+3. Press the key to step through *default* (Hermes's own setting) and your list.
+
+Notes:
+- Hermes's default model is not changed, and Telegram, Discord and the WebUI keep using it.
+- A chat where you already switched models with `/model` keeps that model; Hermes gives a chat's own `/model` choice priority.
+- The model applies to whichever agent the **Agent** key has chosen.
+- Each Ask reply file names the provider and model that actually answered, so you can see if Hermes used something else.
+
 ## Security
 
 - The Hermes API server gives the agent **full tool access, including terminal commands**. Keep it on `127.0.0.1`. Do not expose it to the internet.
@@ -93,6 +108,8 @@ No dependencies. Node 20+.
 node build.js        # writes plugin/index.js into both builds
 node test/test.js    # 60+ checks against a fake Hermes and a fake Stream Dock
 node test/models.js  # per-controller checks: keys, touch strip, Stream Dock knobs, Stream Deck+ dials
+node test/agents.js  # Agent key, per-agent keys, New chat
+node test/modelkey.js  # Model key: model list, dials, the model sent with each Ask run
 PLUGIN=elgato/com.wingedkeys.hermes.sdPlugin node test/test.js
 PLUGIN=elgato/com.wingedkeys.hermes.sdPlugin node test/models.js
 ```

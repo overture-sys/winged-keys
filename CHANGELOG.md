@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0 beta (2026-10-25)
+- **Model** key: switch which model Hermes uses for Ask keys. Press to step through Hermes's own default and the models you list in the settings panel (`model` or `provider:model`); turning a dial steps both ways. Each Ask run sends the chosen `model` (and `provider`) to Hermes; Hermes's default model is not changed.
+- Ask reply files name the provider and model that actually answered.
+- Test connection names the chosen model.
 ## 0.10.0 beta (2026-10-25)
 - **Agent** key: switch which Hermes agent (profile) the keys talk to. Requests go to `/p/<agent>/` with that agent's own key.
 - **New chat** key, and a per-key **Continue the conversation** option for Ask keys.

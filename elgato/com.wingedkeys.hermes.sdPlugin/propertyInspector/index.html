@@ -136,6 +136,13 @@
   <div class="note">Press to switch between your Hermes agents. Ask, Stop, Status and New chat follow the chosen agent.<br><br>Hermes requires each named agent (not "default") to have its own <code>API_SERVER_KEY</code> in <code>profiles\&lt;agent&gt;\.env</code>. Add one per agent, restart Hermes, then use <b>Read key from Hermes</b> above.</div>
 </div>
 
+<div id="modelBox" class="hidden">
+  <h4>Model key (all keys)</h4>
+  <label>Models to switch between (one per line)</label>
+  <textarea id="models" class="code" style="height:90px" placeholder="openrouter:anthropic/claude-sonnet-4.6&#10;claude-sonnet-4"></textarea>
+  <div class="note">Press the key to step through Hermes's own default and these models. Ask keys then ask Hermes to use the chosen model for each run; each reply file names the model that actually answered.<br><br>Write <code>provider:model</code> to name the provider, or just the model name. A model with a colon in its name (like <code>llama3:8b</code>) needs its provider in front: <code>&lt;provider&gt;:llama3:8b</code>. Use the names your Hermes <code>/model</code> command accepts.<br><br>Hermes keeps its own default unchanged. A chat where you already used <code>/model</code> keeps that model.</div>
+</div>
+
 <div id="askBox" class="hidden">
   <h4>This Ask key</h4>
   <label>Key label</label>
@@ -156,7 +163,7 @@
 </div>
 <script>
 let ws, uuid, action = '', actionFull = '';
-const G = ['baseUrl','apiKey','replyDir','dashboardUrl','hermesExe','webuiUrl','envPath','textSize'], L = ['label','prompt','sessionId','timeoutSec','metric','days','target','url','agent'];
+const G = ['baseUrl','apiKey','replyDir','dashboardUrl','hermesExe','webuiUrl','envPath','textSize','models'], L = ['label','prompt','sessionId','timeoutSec','metric','days','target','url','agent'];
 const $ = (id) => document.getElementById(id);
 let globalS = {}, localS = {}, t1, t2;
 function sendMsg(o){ ws && ws.readyState === 1 && ws.send(JSON.stringify(o)); }
@@ -173,6 +180,7 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
   $('openBox').className = action === 'open' ? '' : 'hidden';
   $('sessionBox').className = action === 'session' ? '' : 'hidden';
   $('agentBox').className = action === 'agent' ? '' : 'hidden';
+  $('modelBox').className = action === 'model' ? '' : 'hidden';
   ws = new WebSocket('ws://127.0.0.1:' + port);
   ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid });
     if (action === 'usage') sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'profiles' } }); };
