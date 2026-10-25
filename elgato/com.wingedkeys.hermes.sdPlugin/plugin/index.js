@@ -90,7 +90,7 @@ const FONT = __GLYPHS__;
 
 const PAL = {
   bg: '#161410', edge: '#2e2a22', frame: '#6b5a33',
-  gold: '#d4af37', text: '#f1e9d6', muted: '#b9ab8d',
+  gold: '#d4af37', text: '#f1e9d6', muted: '#d6c9a6',
 };
 
 // 24x24 stroke icons (gold by default)

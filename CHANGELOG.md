@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.2 beta (2026-10-25)
+- Brighter captions under the key text.
+
 ## 0.9.1 beta (2026-10-25)
 - Bigger key text by default, and a **Key text size** setting (Normal, Large, Extra large).
 
