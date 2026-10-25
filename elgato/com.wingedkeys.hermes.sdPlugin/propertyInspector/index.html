@@ -125,6 +125,17 @@
   <input type="text" id="openLabel" placeholder="Open">
 </div>
 
+<div id="sessionBox" class="hidden">
+  <h4>This New chat key</h4>
+  <label class="row"><input type="checkbox" id="openChat"> Also open the Hermes WebUI</label>
+  <div class="note">Starts a fresh conversation for the current agent: Ask keys set to "continue the conversation" start over.</div>
+</div>
+
+<div id="agentBox" class="hidden">
+  <h4>This Agent key</h4>
+  <div class="note">Press to switch between your Hermes agents. Ask, Stop, Status and New chat follow the chosen agent.<br><br>Hermes requires each named agent (not "default") to have its own <code>API_SERVER_KEY</code> in <code>profiles\&lt;agent&gt;\.env</code>. Add one per agent, restart Hermes, then use <b>Read key from Hermes</b> above.</div>
+</div>
+
 <div id="askBox" class="hidden">
   <h4>This Ask key</h4>
   <label>Key label</label>
@@ -135,6 +146,8 @@
   <input type="text" id="sessionId" placeholder="blank = new session each press">
   <label class="row"><input type="checkbox" id="useClipboard"> Add the clipboard text to the prompt</label>
   <div class="note">Whatever you have copied is sent to the agent when you press the key. Don't use this with passwords or private text on the clipboard.</div>
+  <label class="row"><input type="checkbox" id="continueChat"> Continue the conversation (until New chat is pressed)</label>
+  <div class="note">Follow-up presses keep Hermes's memory of earlier answers. Sends go to the agent chosen on the Agent key.</div>
   <label>Timeout (seconds)</label>
   <input type="number" id="timeoutSec" min="10" placeholder="300">
 </div>
@@ -151,13 +164,15 @@ function saveGlobal(){ clearTimeout(t1); t1 = setTimeout(() => {
   G.forEach(k => globalS[k] = $(k).value.trim()); globalS.allowRemote = $('allowRemote').checked; globalS.autoStartDashboard = $('autoStartDashboard').checked;
   sendMsg({ event:'setGlobalSettings', context:uuid, payload:globalS }); }, 400); }
 function saveLocal(){ clearTimeout(t2); t2 = setTimeout(() => {
-  L.forEach(k => localS[k] = $(k).value); localS.useClipboard = $('useClipboard').checked; if (action === 'open') localS.label = $('openLabel').value; sendMsg({ event:'setSettings', context:uuid, payload:localS }); }, 400); }
+  L.forEach(k => localS[k] = $(k).value); localS.useClipboard = $('useClipboard').checked; localS.continueChat = $('continueChat').checked; localS.openChat = $('openChat').checked; if (action === 'open') localS.label = $('openLabel').value; sendMsg({ event:'setSettings', context:uuid, payload:localS }); }, 400); }
 function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
   uuid = inUuid;
   try { actionFull = JSON.parse(info).action || ''; action = actionFull.split('.').pop(); } catch(e){}
   $('askBox').className = action === 'ask' ? '' : 'hidden';
   $('usageBox').className = action === 'usage' ? '' : 'hidden';
   $('openBox').className = action === 'open' ? '' : 'hidden';
+  $('sessionBox').className = action === 'session' ? '' : 'hidden';
+  $('agentBox').className = action === 'agent' ? '' : 'hidden';
   ws = new WebSocket('ws://127.0.0.1:' + port);
   ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid });
     if (action === 'usage') sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'profiles' } }); };
@@ -175,7 +190,7 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
       foundAddr = m.payload.found || ''; $('btnUseAddr').className = foundAddr ? '' : 'hidden';
       if (foundAddr) $('btnUseAddr').textContent = 'Use this address: ' + foundAddr;
       sendMsg({ event:'getGlobalSettings', context:uuid }); }
-    if (m.event === 'didReceiveSettings') { localS = m.payload.settings || {}; L.forEach(k => { if (localS[k] || !['metric','days','target','agent'].includes(k)) $(k).value = localS[k] || ''; }); $('useClipboard').checked = localS.useClipboard === true; $('openLabel').value = action === 'open' ? (localS.label || '') : ''; } };
+    if (m.event === 'didReceiveSettings') { localS = m.payload.settings || {}; L.forEach(k => { if (localS[k] || !['metric','days','target','agent'].includes(k)) $(k).value = localS[k] || ''; }); $('useClipboard').checked = localS.useClipboard === true; $('continueChat').checked = localS.continueChat === true; $('openChat').checked = localS.openChat === true; $('openLabel').value = action === 'open' ? (localS.label || '') : ''; } };
 }
 function showResult(text, ok){ const r = $('setupResult'); r.textContent = text; r.className = 'result ' + (ok ? 'ok' : 'bad'); }
 function cmd(c){ showResult('Working...', true); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:c } }); }
@@ -195,7 +210,7 @@ $('btnMake').onclick = () => {
 };
 $('btnCopy').onclick = () => { const a = $('envLines'); if (!a.value) return; a.select(); try { document.execCommand('copy'); showResult('Copied. Paste into your Hermes .env, then restart the gateway.', true); } catch(e) { showResult('Select the text and press Ctrl+C.', false); } };
 G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('autoStartDashboard').addEventListener('change', saveGlobal); $('textSize').addEventListener('change', saveGlobal);
-L.forEach(k => { $(k).addEventListener('input', saveLocal); $(k).addEventListener('change', saveLocal); }); $('useClipboard').addEventListener('change', saveLocal); $('openLabel').addEventListener('input', saveLocal);
+L.forEach(k => { $(k).addEventListener('input', saveLocal); $(k).addEventListener('change', saveLocal); }); $('useClipboard').addEventListener('change', saveLocal); $('continueChat').addEventListener('change', saveLocal); $('openChat').addEventListener('change', saveLocal); $('openLabel').addEventListener('input', saveLocal);
 </script>
 </body>
 </html>

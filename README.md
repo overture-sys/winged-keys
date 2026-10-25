@@ -1,8 +1,8 @@
-<p align="center"><img src="docs/logo.png" width="128" alt="Winged Keys logo"></p>
+<p align="center"><img src="docs/banner.png" alt="Winged Keys: keys for Hermes Agent"></p>
 
 # Winged Keys (beta)
 
-*Keys for Hermes Agent.*
+<p align="center"><img src="docs/keys.png" alt="Winged Keys on a Stream Dock: status, cache hit, tokens, an Ask key, the Agent key, New chat, platforms and stop"></p>
 
 > **Beta.** Tested on one Stream Dock M18 on Windows with Hermes 0.22.1. Other models are covered by simulated tests only. Expect rough edges and please report issues.
 
@@ -26,6 +26,8 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 | **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats, all agents added up or one agent; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off starts the dashboard. |
 | **Platforms** | How many Hermes connections are up, e.g. `4/4`. Turns red and names the one that dropped. |
 | **Open** | Opens the Hermes WebUI, the Hermes dashboard, the latest Ask reply, or a web address you set. |
+| **Agent** | Switches which Hermes agent (profile) the keys talk to, for example Morpheus or The Chef. Ask, Stop, Status and New chat follow it. |
+| **New chat** | Starts a fresh conversation for the current agent. Ask keys set to *continue the conversation* keep Hermes's memory between presses until you press it. |
 
 ## Requirements
 
@@ -51,6 +53,14 @@ Then drag keys from the **Winged Keys** category and click one. In the settings 
 2. If the API server isn't on yet, open **First-time setup**: click **Make a key**, copy the two lines into your Hermes `.env`, and restart the Hermes gateway.
 3. If your `.env` already has a key, you can click **⚠ Read key from Hermes** instead of pasting it (see Security).
 4. **Test connection** tells you in plain words what is working and what isn't.
+
+## Using several agents
+
+Hermes serves every agent (profile) on the same port, and each named agent checks **its own** `API_SERVER_KEY`. Hermes does not reuse the main key for them. To use the **Agent** key with an agent other than *default*:
+
+1. Add an `API_SERVER_KEY=...` line to that agent's `.env` (Windows: `%LOCALAPPDATA%\hermes\profiles\<agent>\.env`). It can be the same value as your main key or a different one.
+2. Restart the Hermes gateway.
+3. In the settings panel, click **⚠ Read key from Hermes**. It picks up the main key and each agent's key, and tells you which agents still need one.
 
 ## Security
 

@@ -101,6 +101,8 @@ const ICONS = {
   usage: '<path d="M4 20h16M6 20V9M10 20V9M14 20V9M18 20V9M3 9h18L12 4z"/>',
   platforms: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 8l8 8M16 8l-8 8"/>',
   open: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
+  agent: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>',
+  session: '<path d="M4 5h16v10H9l-5 4z"/><path d="M12 7.5v5M9.5 10h5"/>',
 };
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -281,7 +283,7 @@ function show(context, color, title) {
 }
 function label(context) {
   const c = ctx.get(context); if (!c) return '';
-  return c.settings.label || ({ status: 'Hermes', ask: 'Ask', stop: 'Stop', open: 'Open', platforms: 'Platforms' })[c.action] || '';
+  return c.settings.label || ({ status: 'Hermes', ask: 'Ask', stop: 'Stop', open: 'Open', platforms: 'Platforms', session: 'New chat' })[c.action] || '';
 }
 function initKey(context) {
   const c = ctx.get(context); if (!c) return;
@@ -289,8 +291,22 @@ function initKey(context) {
   else if (c.action === 'usage') refreshUsage(context);
   else if (c.action === 'platforms') refreshPlatforms(context);
   else if (c.action === 'open') show(context, COLORS.grey, label(context));
-  else if (c.action === 'ask') show(context, runs.has(context) ? COLORS.blue : COLORS.grey, runs.has(context) ? 'working' : label(context));
+  else if (c.action === 'ask') show(context, runs.has(context) ? COLORS.blue : COLORS.grey, runs.has(context) ? 'working' : label(context) + agentLine());
+  else if (c.action === 'agent') show(context, COLORS.grey, agentName() + '\nagent');
+  else if (c.action === 'session') show(context, COLORS.grey, label(context) + agentLine());
   else show(context, COLORS.red, label(context));
+}
+
+// ---- Agents (Hermes profiles). Hermes serves each agent at /p/<agent>/ on the same port, and each
+// named agent checks its OWN API_SERVER_KEY (from profiles/<agent>/.env); "default" uses the main key.
+const AGENT_RE = /^[A-Za-z0-9_-]{1,64}$/;
+function activeAgent() { const a = global.activeAgent; return a && a !== 'default' && AGENT_RE.test(String(a)) ? String(a) : ''; }
+function agentName(a = activeAgent()) { return a || 'default'; }
+// Second line naming the agent, shown only when one is chosen.
+function agentLine() { return activeAgent() ? '\n' + activeAgent() : ''; }
+function agentKey(a) {
+  const ks = global.agentKeys && typeof global.agentKeys === 'object' ? global.agentKeys : {};
+  return (a && typeof ks[a] === 'string' && ks[a]) || global.apiKey || '';
 }
 
 // ---- Hermes API
@@ -318,11 +334,13 @@ async function safeFetch(url, { method = 'GET', headers = {}, body, timeoutMs = 
   } finally { clearTimeout(t); }
 }
 function parseJson(text) { try { return JSON.parse(text); } catch { return null; } }
-async function api(pathname, { method = 'GET', body, auth = true, timeoutMs = 8000 } = {}) {
+async function api(pathname, { method = 'GET', body, auth = true, timeoutMs = 8000, agent = activeAgent() } = {}) {
   const headers = {};
   if (body) headers['Content-Type'] = 'application/json';
-  if (auth && global.apiKey) headers.Authorization = 'Bearer ' + global.apiKey;
-  const r = await safeFetch(baseUrl() + pathname, { method, headers, body: body ? JSON.stringify(body) : undefined, timeoutMs });
+  const key = agentKey(agent);
+  if (auth && key) headers.Authorization = 'Bearer ' + key;
+  const prefix = agent && pathname.startsWith('/v1/') ? '/p/' + encodeURIComponent(agent) : '';
+  const r = await safeFetch(baseUrl() + prefix + pathname, { method, headers, body: body ? JSON.stringify(body) : undefined, timeoutMs });
   return { status: r.status, ok: r.ok, json: parseJson(r.text) };
 }
 
@@ -330,11 +348,16 @@ async function api(pathname, { method = 'GET', body, auth = true, timeoutMs = 80
 async function refreshStatus(context) {
   try {
     const h = await api('/health', { auth: false });
-    if (!h.ok) return show(context, COLORS.red, 'Hermes\nerror ' + h.status);
-    if (!global.apiKey) return show(context, COLORS.amber, 'Hermes\nno key');
+    const who = activeAgent() || 'Hermes';
+    if (!h.ok) return show(context, COLORS.red, who + '\nerror ' + h.status);
+    if (!agentKey(activeAgent())) return show(context, COLORS.amber, who + '\nno key');
     const m = await api('/v1/models');
-    if (m.status === 401 || m.status === 403) return show(context, COLORS.amber, 'Hermes\nbad key');
-    return show(context, COLORS.green, 'Hermes\nOK');
+    if (m.status === 404 && activeAgent()) return show(context, COLORS.amber, who + '\nunknown');
+    if (m.status === 401 || m.status === 403) {
+      const own = activeAgent() && global.agentKeys && typeof global.agentKeys === 'object' && global.agentKeys[activeAgent()];
+      return show(context, COLORS.amber, who + (activeAgent() && !own ? '\nneeds key' : '\nbad key'));
+    }
+    return show(context, COLORS.green, who + '\nOK');
   } catch (e) {
     if (e.code === 'REMOTE') return show(context, COLORS.amber, 'Hermes\nlocal only');
     show(context, COLORS.red, 'Hermes\n' + (await whyApiDown()));
@@ -559,6 +582,8 @@ function readClipboard() {
   return new Promise((resolve) => execFile(cmd[0], cmd[1], { timeout: 5000, windowsHide: true, maxBuffer: 4 * 1024 * 1024 }, (err, out) => resolve(err ? '' : String(out || '').replace(/\r?\n$/, ''))));
 }
 let lastReply = '';
+// Ask keys with "continue the conversation" share one Hermes session per agent until New chat is pressed.
+const conversations = new Map();
 async function ask(context) {
   // Claim this key before any await, so a second press can't start a second, unstoppable run.
   if (runs.has(context)) return send({ event: 'showAlert', context });
@@ -583,21 +608,25 @@ async function askClaimed(context, rec, release) {
   }
   if (rec.stopped) { release(); show(context, COLORS.grey, 'stopped'); return setTimeout(() => initKey(context), 3000); }
   try {
+    const agent = activeAgent();
+    rec.agent = agent;
     const body = { input };
+    const cont = c.settings.continueChat === true || c.settings.continueChat === 'true';
     if (c.settings.sessionId) body.session_id = c.settings.sessionId;
-    const start = await api('/v1/runs', { method: 'POST', body });
+    else if (cont && conversations.get(agentName(agent))) body.session_id = conversations.get(agentName(agent));
+    const start = await api('/v1/runs', { method: 'POST', body, agent });
     if (!start.ok || !start.json || !start.json.run_id) throw new Error('start ' + start.status);
     const runId = start.json.run_id;
     rec.runId = runId;
     // Stop was pressed while the run was being created: stop it now.
-    if (rec.stopped) api('/v1/runs/' + encodeURIComponent(runId) + '/stop', { method: 'POST' }).catch(() => {});
+    if (rec.stopped) api('/v1/runs/' + encodeURIComponent(runId) + '/stop', { method: 'POST', agent }).catch(() => {});
     show(context, COLORS.blue, 'working');
     const t0 = Date.now();
     let final = null;
     while (Date.now() - t0 < timeoutMs) {
       await sleep(POLL_MS);
       if (rec.stopped) break;
-      const r = await api('/v1/runs/' + encodeURIComponent(runId));
+      const r = await api('/v1/runs/' + encodeURIComponent(runId), { agent });
       const st = r.json && r.json.status;
       if (['completed', 'failed', 'cancelled', 'interrupted'].includes(st)) { final = r.json; break; }
       // Waiting on the user (approval or clarification): show it; approving is done in the WebUI/app, never blind from a key.
@@ -607,7 +636,7 @@ async function askClaimed(context, rec, release) {
     }
     release();
     if (rec.stopped) { show(context, COLORS.grey, 'stopped'); return setTimeout(() => initKey(context), 3000); }
-    if (!final) { api('/v1/runs/' + encodeURIComponent(runId) + '/stop', { method: 'POST' }).catch(() => {}); throw new Error('timeout'); }
+    if (!final) { api('/v1/runs/' + encodeURIComponent(runId) + '/stop', { method: 'POST', agent }).catch(() => {}); throw new Error('timeout'); }
     if (final.status !== 'completed') throw new Error(final.status);
     const dir = replyDir();
     fs.mkdirSync(dir, { recursive: true });
@@ -620,6 +649,7 @@ async function askClaimed(context, rec, release) {
     }
     if (!file) throw new Error('could not save reply');
     lastReply = file;
+    if (cont && typeof final.session_id === 'string' && final.session_id) conversations.set(agentName(agent), final.session_id.slice(0, 200));
     send({ event: 'showOk', context });
     show(context, COLORS.green, 'done');
   } catch (e) {
@@ -636,7 +666,7 @@ async function stopAll(context) {
   for (const [ctxId, rec] of active) {
     if (!rec.runId) { rec.stopped = true; ok++; continue; } // not created yet: ask() stops it as soon as it exists
     let stoppedOk = false;
-    try { const r = await api('/v1/runs/' + encodeURIComponent(rec.runId) + '/stop', { method: 'POST' }); stoppedOk = r.ok; } catch {}
+    try { const r = await api('/v1/runs/' + encodeURIComponent(rec.runId) + '/stop', { method: 'POST', agent: rec.agent || '' }); stoppedOk = r.ok; } catch {}
     // Only show "stopped" if Hermes accepted the stop; otherwise the Ask key keeps tracking the run.
     if (stoppedOk) { rec.stopped = true; ok++; if (runs.get(ctxId) === rec) runs.delete(ctxId); }
   }
@@ -650,6 +680,45 @@ function onKey(context, kind) {
   else if (kind === 'open') openPress(context);
   else if (kind === 'ask') ask(context);
   else if (kind === 'stop') stopAll(context);
+  else if (kind === 'agent') nextAgent(context);
+  else if (kind === 'session') newChat(context);
+}
+
+// ---- Agent key: cycles through your Hermes agents; Ask, Stop, Status and New chat follow it.
+function hermesHome() { return path.dirname(global.envPath ? String(global.envPath) : defaultEnvPath()); }
+function agentsOnDisk() {
+  try {
+    return fs.readdirSync(path.join(hermesHome(), 'profiles'), { withFileTypes: true })
+      .filter((d) => d.isDirectory() && AGENT_RE.test(d.name)).map((d) => d.name).slice(0, 32);
+  } catch { return []; }
+}
+async function allAgents() {
+  const set = new Set(['default']);
+  try { for (const p of await listProfiles()) set.add(p); } catch {}
+  for (const p of agentsOnDisk()) set.add(p);
+  return [...set];
+}
+async function nextAgent(context) {
+  const list = await allAgents();
+  const i = list.indexOf(agentName());
+  const next = list[(i + 1) % list.length];
+  setGlobal({ activeAgent: next === 'default' ? '' : next });
+  dlog('agent switched');
+  for (const [c] of ctx) initKey(c);
+  if (context) send({ event: 'showOk', context });
+}
+
+// ---- New chat key: forgets the current conversation for the active agent.
+function newChat(context) {
+  const c = ctx.get(context); if (!c) return;
+  conversations.delete(agentName());
+  show(context, COLORS.green, 'new chat\n' + agentName());
+  if (c.settings.openChat === true || c.settings.openChat === 'true') {
+    const url = String(global.webuiUrl || DEFAULTS.webuiUrl);
+    if (/^https?:\/\//i.test(url)) send({ event: 'openUrl', payload: { url } });
+  }
+  send({ event: 'showOk', context });
+  setTimeout(() => initKey(context), 2500);
 }
 
 // ---- Dials: turning a Usage dial steps through the metrics; other actions ignore turning.
@@ -710,8 +779,16 @@ async function testConnection() {
       lines.push('OK  Hermes API is running at ' + baseUrl() + '.');
       if (!global.apiKey) lines.push('NO  No API key set. Paste it, make one, or read it from Hermes.');
       else {
-        const m = await api('/v1/models');
+        const m = await api('/v1/models', { agent: '' });
         lines.push(m.status === 401 || m.status === 403 ? 'NO  The API key does not match API_SERVER_KEY in your Hermes .env.' : m.ok ? 'OK  API key accepted.' : 'NO  Key check failed (error ' + m.status + ').');
+        const a = activeAgent();
+        if (a) {
+          const am = await api('/v1/models');
+          lines.push(am.ok ? 'OK  Agent "' + a + '" accepted its key.'
+            : am.status === 404 ? 'NO  Hermes does not serve an agent named "' + a + '".'
+            : am.status === 401 || am.status === 403 ? 'NO  Agent "' + a + '" needs its own API_SERVER_KEY in profiles\\' + a + '\\.env (Hermes does not reuse the main key for named agents). Then use Read key from Hermes.'
+            : 'NO  Agent "' + a + '" check failed (error ' + am.status + ').');
+        }
       }
     }
   } catch (e) {
@@ -732,6 +809,18 @@ function defaultEnvPath() {
   if (process.platform === 'win32' && process.env.LOCALAPPDATA) return path.join(process.env.LOCALAPPDATA, 'hermes', '.env');
   return path.join(os.homedir(), '.hermes', '.env');
 }
+function readEnvKey(file) {
+  let text = '';
+  try { if (fs.statSync(file).size > 1024 * 1024) return ''; text = fs.readFileSync(file, 'utf8'); } catch { return ''; }
+  let key = '';
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const i = line.indexOf('=');
+    if (i > 0 && line.slice(0, i).trim() === 'API_SERVER_KEY') key = line.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+  }
+  return key.length >= 16 ? key : '';
+}
 async function readKeyFromHermes() {
   // The file location comes only from the user's own setting or the standard Hermes location,
   // never from the dashboard (a fake dashboard could otherwise choose which file is read).
@@ -751,9 +840,18 @@ async function readKeyFromHermes() {
     if (k === 'API_SERVER_ENABLED') enabled = /^(true|1|yes|on)$/i.test(v);
   }
   if (!key) return { ok: false, text: 'No API_SERVER_KEY in ' + envPath + '. Use "Make a key" and the setup steps.' };
-  setGlobal({ apiKey: key });
-  dlog('api key read from Hermes .env');
-  return { ok: true, text: 'Key read from ' + envPath + ' and saved.' + (enabled ? '' : ' Note: API_SERVER_ENABLED is not true there, so the API server may be off.') };
+  // Each agent's own key, from <hermes home>/profiles/<agent>/.env (only that one line is read).
+  const agentKeys = {}, missing = [];
+  for (const a of agentsOnDisk()) {
+    const k = readEnvKey(path.join(path.dirname(envPath), 'profiles', a, '.env'));
+    if (k) agentKeys[a] = k; else missing.push(a);
+  }
+  setGlobal({ apiKey: key, agentKeys });
+  dlog('api keys read from Hermes .env files');
+  const found = Object.keys(agentKeys);
+  return { ok: true, text: 'Key read from ' + envPath + ' and saved.' + (enabled ? '' : ' Note: API_SERVER_ENABLED is not true there, so the API server may be off.')
+    + (found.length ? '\nAgent keys found for: ' + found.join(', ') + '.' : '')
+    + (missing.length ? '\nNo key yet for: ' + missing.join(', ') + '. To use them from the keys, add an API_SERVER_KEY line to each agent\'s .env (profiles\\<agent>\\.env), restart Hermes, and read the keys again.' : '') };
 }
 
 async function onSetupCommand(m) {

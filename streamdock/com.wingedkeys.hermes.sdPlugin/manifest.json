@@ -6,7 +6,7 @@
   "Category": "Winged Keys",
   "CategoryIcon": "static/category.png",
   "Icon": "static/plugin.png",
-  "Version": "0.9.2",
+  "Version": "0.10.0",
   "CodePathWin": "plugin/index.js",
   "CodePathMac": "plugin/index.js",
   "URL": "",
@@ -147,6 +147,50 @@
         "Knob"
       ],
       "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "static/key-idle.png",
+          "TitleAlignment": "bottom",
+          "FontSize": "9"
+        }
+      ]
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.agent",
+      "Name": "Agent",
+      "Tooltip": "Switches which Hermes agent the keys talk to (Morpheus, The Chef...).",
+      "Icon": "static/agent.png",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Information",
+        "Knob"
+      ],
+      "States": [
+        {
+          "Image": "static/key-idle.png",
+          "TitleAlignment": "bottom",
+          "FontSize": "9"
+        }
+      ]
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.session",
+      "Name": "New chat",
+      "Tooltip": "Starts a fresh conversation for the current agent.",
+      "Icon": "static/session.png",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Information",
+        "Knob"
+      ],
       "States": [
         {
           "Image": "static/key-idle.png",

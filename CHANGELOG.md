@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 beta (2026-10-25)
+- **Agent** key: switch which Hermes agent (profile) the keys talk to. Requests go to `/p/<agent>/` with that agent's own key.
+- **New chat** key, and a per-key **Continue the conversation** option for Ask keys.
+- **Read key from Hermes** also reads each agent's `API_SERVER_KEY` and lists agents that still need one.
+- Status and Test connection explain when an agent needs its own key.
+- New README banner and key showcase.
+
 ## 0.9.2 beta (2026-10-25)
 - Brighter captions under the key text.
 
