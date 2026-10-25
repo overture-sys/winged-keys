@@ -4,27 +4,39 @@
 <meta charset="utf-8">
 <title>Winged Keys settings</title>
 <style>
-  body{font-family:"Segoe UI",Arial,sans-serif;background:#2a2a2a;color:#eee;padding:10px;font-size:13px}
-  label{display:block;margin:10px 0 3px}
-  input[type=text],input[type=password],input[type=number],textarea{width:100%;box-sizing:border-box;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px}
+  @font-face{font-family:"Cinzel";src:url("fonts/Cinzel-Bold.ttf") format("truetype");font-weight:700}
+  @font-face{font-family:"Cinzel";src:url("fonts/Cinzel-Medium.ttf") format("truetype");font-weight:500}
+  :root{--bg:#0f0e0c;--card:#161410;--edge:#2e2a22;--frame:#6b5a33;--gold:#d4af37;--text:#f1e9d6;--muted:#b9ab8d;--ok:#7fd19b;--bad:#d9705c;--warn:#e0b25a}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);padding:12px;font-size:13px;margin:0}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 0 10px;border-bottom:1px solid var(--edge)}
+  .brand span{font-family:Cinzel,serif;font-weight:700;letter-spacing:.14em;color:var(--gold);font-size:15px}
+  label{display:block;margin:10px 0 4px;color:var(--muted);font-size:12px}
+  input[type=text],input[type=password],input[type=number],textarea,select{width:100%;box-sizing:border-box;background:var(--card);color:var(--text);border:1px solid var(--edge);border-radius:6px;padding:7px 8px;font-size:12px}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--frame)}
+  input[type=checkbox]{accent-color:var(--gold)}
   textarea{height:80px;resize:vertical}
-  h4{margin:16px 0 4px;border-bottom:1px solid #555;padding-bottom:3px}
-  .note{color:#aaa;font-size:11px;margin-top:3px}
+  h4{font-family:Cinzel,serif;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-size:12px;margin:18px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--edge)}
+  .note{color:var(--muted);font-size:11px;margin-top:4px;line-height:1.4}
   .row{display:flex;gap:6px;align-items:center}
   .hidden{display:none}
-  button{background:#3a3a3c;color:#eee;border:1px solid #666;border-radius:4px;padding:6px 10px;margin:6px 6px 0 0;cursor:pointer;font-size:12px}
-  button:hover{background:#4a4a4e}
-  .result{white-space:pre-wrap;background:#1c1c1e;border:1px solid #444;border-radius:4px;padding:6px;margin-top:6px;font-size:11px}
-  .ok{border-color:#2ecc71}.bad{border-color:#e74c3c}
-  .warn{border:1px solid #f5a623;background:#3a2e14;border-radius:4px;padding:8px;margin-top:8px;font-size:11px;line-height:1.4}
-  .warn b{color:#f5a623}
+  button{font-family:Cinzel,serif;font-weight:700;letter-spacing:.06em;background:transparent;color:var(--text);border:1px solid var(--frame);border-radius:5px;padding:7px 12px;margin:6px 6px 0 0;cursor:pointer;font-size:11px}
+  button:hover{border-color:var(--gold);color:var(--gold)}
+  button.primary{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+  button.primary:hover{background:#e0bf55;color:var(--bg)}
+  .result{white-space:pre-wrap;background:var(--card);border:1px solid var(--edge);border-radius:6px;padding:7px 8px;margin-top:8px;font-size:11px;font-family:Consolas,monospace}
+  .ok{border-color:var(--ok)}.bad{border-color:var(--bad)}
+  .warn{border:1px solid var(--warn);background:#2a2214;border-radius:6px;padding:9px;margin-top:8px;font-size:11px;line-height:1.45}
+  .warn b{color:var(--warn)}
+  code{color:var(--gold)}
   textarea.code{font-family:Consolas,monospace;font-size:11px;height:44px}
-  details summary{cursor:pointer;margin-top:12px;color:#ccc}
+  details summary{cursor:pointer;margin-top:12px;color:var(--muted)}
+  a{color:var(--gold)}
 </style>
 </head>
 <body>
+<div class="brand"><svg width="30" height="30" viewBox="0 0 64 64" fill="none" stroke="#d4af37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 50c-6-8-7-20-1-30"/><path d="M50 50c6-8 7-20 1-30"/><path d="M13 44c-4 0-6-3-6-6 3 0 6 2 6 6z"/><path d="M11 36c-4-1-5-4-5-7 3 1 5 3 5 7z"/><path d="M51 44c4 0 6-3 6-6-3 0-6 2-6 6z"/><path d="M53 36c4-1 5-4 5-7-3 1-5 3-5 7z"/><path d="M20 40c6 0 10-3 12-9"/><path d="M22 44c7 0 12-3 15-9"/><path d="M26 47c7 0 13-2 17-8"/><path d="M32 31c3-5 7-8 13-8"/></svg><span>WINGED KEYS</span></div>
 <h4>Setup</h4>
-<button id="btnDetect">Find Hermes</button><button id="btnTest">Test connection</button>
+<button id="btnDetect" class="primary">Find Hermes</button><button id="btnTest">Test connection</button>
 <div id="setupResult" class="result hidden"></div>
 <button id="btnUseAddr" class="hidden">Use this address</button>
 
@@ -43,7 +55,7 @@
   That key gives full control of your agent, including running commands on this PC. Stream Dock / Stream Deck may store it unencrypted.
   Only continue on your own computer.
   <br>It reads the standard location (Windows: %LOCALAPPDATA%\hermes\.env) unless you set another one under "Hermes .env location" below.
-  <br><button id="btnReadYes">Yes, read my key</button><button id="btnReadNo">Cancel</button>
+  <br><button id="btnReadYes" class="primary">Yes, read my key</button><button id="btnReadNo">Cancel</button>
 </div>
 
 <h4>Hermes connection (all keys)</h4>
@@ -69,7 +81,7 @@
 <div id="usageBox" class="hidden">
   <h4>This Usage key</h4>
   <label>Show</label>
-  <select id="metric" style="width:100%;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px">
+  <select id="metric">
     <option value="cache">Cache hit % (all chats)</option>
     <option value="alltokens">Tokens (all chats)</option>
     <option value="sessions">Sessions (all chats)</option>
@@ -80,11 +92,11 @@
     <option value="active">Agents running now</option>
   </select>
   <label>Agent (all-chats numbers)</label>
-  <select id="agent" style="width:100%;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px">
+  <select id="agent">
     <option value="all">All agents (added up)</option>
   </select>
   <label>Period (all-chats numbers)</label>
-  <select id="days" style="width:100%;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px">
+  <select id="days">
     <option value="1">Today</option>
     <option value="7">Last 7 days</option>
     <option value="30">Last 30 days</option>
@@ -95,7 +107,7 @@
 <div id="openBox" class="hidden">
   <h4>This Open key</h4>
   <label>Open</label>
-  <select id="target" style="width:100%;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px">
+  <select id="target">
     <option value="webui">Hermes WebUI</option>
     <option value="dashboard">Hermes dashboard</option>
     <option value="reply">Latest Ask reply</option>
@@ -120,8 +132,8 @@
   <label>Timeout (seconds)</label>
   <input type="number" id="timeoutSec" min="10" placeholder="300">
 </div>
-<div style="margin-top:18px;padding-top:8px;border-top:1px solid #444;font-size:11px;color:#999">
-  Winged Keys (beta) by overture-sys &middot; <a href="#" id="lnkSupport" style="color:#e88">&hearts; Support on Ko-fi</a>
+<div style="margin-top:18px;padding-top:8px;border-top:1px solid #2e2a22;font-size:11px;color:#b9ab8d">
+  Winged Keys (beta) by overture-sys &middot; <a href="#" id="lnkSupport" style="color:#d4af37">&hearts; Support on Ko-fi</a>
 </div>
 <script>
 let ws, uuid, action = '', actionFull = '';

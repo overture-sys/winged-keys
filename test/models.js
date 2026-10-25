@@ -22,6 +22,7 @@ sd.on('upgrade',(req,s)=>{const k=crypto.createHash('sha1').update(req.headers['
 const stored={};
 const send=o=>sock.write(frame(JSON.stringify(o)));
 const of=(c,ev)=>msgs.filter(m=>m.context===c&&(!ev||m.event===ev));
+const lbl=(c)=>{const im=msgs.filter(m=>m.context===c&&m.event==='setImage').pop();if(!im)return '';const m=decodeURIComponent(im.payload.image).match(/data-label="([^"]*)"/);return m?m[1].replace(/&amp;/g,'&'):'';};
 const last=(c,ev)=>of(c,ev).pop();
 const P='com.wingedkeys.hermes.';
 const MODELS=[
@@ -53,9 +54,10 @@ const MODELS=[
    check(tag+'status uses dial display',!!last(C('status'),'setFeedback')&&/OK/.test(JSON.stringify(last(C('status'),'setFeedback').payload))&&!last(C('status'),'setImage'));
    check(tag+'usage dial shows cache 75%',JSON.stringify(last(C('usage'),'setFeedback').payload).includes('75%'));
   } else {
-   check(tag+'status key green OK',/OK/.test(last(C('status'),'setTitle').payload.title));
-   check(tag+'usage shows cache 75%',decodeURIComponent(last(C('usage'),'setImage').payload.image).includes('>75%<'));
-   check(tag+'platforms 1/1',decodeURIComponent(last(C('platforms'),'setImage').payload.image).includes('>1/1<'));
+   check(tag+'status key green OK',/OK/.test(lbl(C('status'))));
+   check(tag+'usage shows cache 75%',decodeURIComponent(last(C('usage'),'setImage').payload.image).includes('data-value=\"75%\"'));
+   check(tag+'keys draw their own text (title cleared)',last(C('status'),'setTitle').payload.title==='');
+   check(tag+'platforms 1/1',decodeURIComponent(last(C('platforms'),'setImage').payload.image).includes('data-value=\"1/1\"'));
   }
   // press: key or knob press
   const pressEv=md.ctrl==='Keypad'||md.ctrl==='Information'?'keyDown':'dialDown';

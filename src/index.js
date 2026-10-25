@@ -1,6 +1,7 @@
 // Winged Keys - Stream Dock plugin. Not made by or affiliated with Nous Research.
 // Talks only to the Hermes API server and the Hermes dashboard. The API key comes from the app's global settings and is never logged.
 const WebSocket = require('./wsclient');
+const FACE = require('./face');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -72,11 +73,8 @@ ws.on('message', (raw) => {
 });
 
 // ---- key display
-const COLORS = { green: '#2ecc71', amber: '#f5a623', red: '#e74c3c', grey: '#7f8c8d', blue: '#3498db' };
-function dot(color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144"><rect width="144" height="144" rx="16" fill="#1c1c1e"/><circle cx="72" cy="60" r="34" fill="${color}"/></svg>`;
-  return 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(svg);
-}
+// Greek-gold palette. grey = idle (drawn in gold), blue = busy.
+const COLORS = { green: '#7fd19b', amber: '#e0b25a', red: '#d9705c', grey: FACE.PAL.gold, blue: '#8fb3e8', text: FACE.PAL.text };
 function isEncoder(context) { const c = ctx.get(context); return !!c && c.controller === 'Encoder'; }
 // Elgato dials have their own display (layout $A1: title + value); keys and Stream Dock knobs use image + title.
 function feedback(context, title, value, color) {
@@ -84,8 +82,10 @@ function feedback(context, title, value, color) {
 }
 function show(context, color, title) {
   if (isEncoder(context)) { const parts = String(title).split('\n'); return feedback(context, parts.length > 1 ? parts[0] : label(context), parts[parts.length - 1], color); }
-  send({ event: 'setImage', context, payload: { target: 0, image: dot(color) } });
-  send({ event: 'setTitle', context, payload: { target: 0, title } });
+  const c = ctx.get(context);
+  const image = c && c.action === 'status' ? FACE.statusFace(color, title) : FACE.iconFace(c ? c.action : 'open', color, title);
+  send({ event: 'setImage', context, payload: { target: 0, image } });
+  send({ event: 'setTitle', context, payload: { target: 0, title: '' } }); // the text is drawn on the key
 }
 function label(context) {
   const c = ctx.get(context); if (!c) return '';
@@ -164,15 +164,11 @@ setInterval(refreshAllStatus, STATUS_MS);
 
 // ---- Usage (reads the Hermes dashboard's /api/status; never sends the Hermes API key there)
 function fmtNum(n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'k' : String(Math.round(n)); }
-function bigText(value, color) {
-  value = String(value).slice(0, 8);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144"><rect width="144" height="144" rx="16" fill="#1c1c1e"/><text x="72" y="82" font-family="Arial" font-weight="bold" font-size="${value.length > 5 ? 38 : 48}" fill="${color}" text-anchor="middle">${value.replace(/[<>&]/g, '')}</text></svg>`;
-  return 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(svg);
-}
 function showValue(context, value, color, title) {
   if (isEncoder(context)) return feedback(context, title, value, color);
-  send({ event: 'setImage', context, payload: { target: 0, image: bigText(value, color) } });
-  send({ event: 'setTitle', context, payload: { target: 0, title } });
+  if (color === '#ffffff') color = COLORS.text;
+  send({ event: 'setImage', context, payload: { target: 0, image: FACE.valueFace(value, color, title) } });
+  send({ event: 'setTitle', context, payload: { target: 0, title: '' } }); // the text is drawn on the key
 }
 async function dashStatus() {
   const r = await safeFetch(dashBase() + '/api/status');
@@ -273,9 +269,9 @@ async function refreshUsage(context) {
     try {
       const agent = c.settings.agent && c.settings.agent !== 'all' && PROFILE_RE.test(c.settings.agent) ? c.settings.agent : '';
       const totals = await usageTotals(days, agent);
-      return showValue(context, am.get(totals), '#ffffff', am.label + '\n' + (agent ? agent.slice(0, 10) + ' ' : '') + PERIOD[days]);
+      return showValue(context, am.get(totals), c.settings.metric === 'cache' ? FACE.PAL.gold : '#ffffff', am.label + '\n' + (agent ? agent.slice(0, 10) + ' ' : '') + PERIOD[days]);
     } catch (e) {
-      return showValue(context, e.code === 'REMOTE' ? 'local' : e.code === 'AUTH' ? 'auth' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press:start');
+      return showValue(context, e.code === 'REMOTE' ? 'local' : e.code === 'AUTH' ? 'auth' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press to start');
     }
   }
   const metric = METRICS[c.settings.metric] ? c.settings.metric : 'tokens';
@@ -286,7 +282,7 @@ async function refreshUsage(context) {
     const v = METRICS[metric].get(st, m);
     showValue(context, v, metric === 'active' && Number(st.active_agents) > 0 ? COLORS.blue : '#ffffff', METRICS[metric].label);
   } catch (e) {
-    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press:start');
+    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press to start');
   }
 }
 async function dashUp() { try { const r = await dashGet('/api/status', false); return r.ok; } catch { return false; } }
@@ -311,7 +307,7 @@ async function refreshPlatforms(context) {
     const name = bad[0][0].split(':').pop().replace('api_server', 'api').slice(0, 10);
     showValue(context, txt, COLORS.red, name + ' ' + String(bad[0][1] && bad[0][1].state || 'down').slice(0, 10));
   } catch (e) {
-    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press:start');
+    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press to start');
   }
 }
 function refreshAllPlatforms() { for (const [c, v] of ctx) if (v.action === 'platforms') refreshPlatforms(c); }

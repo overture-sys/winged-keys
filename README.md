@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" width="128" alt="Winged Keys logo"></p>
+
 # Winged Keys (beta)
 
 *Keys for Hermes Agent.*
@@ -94,6 +96,8 @@ The Elgato build uses the same code and Elgato's manifest format and image sizes
 ## Credits
 
 Built by [overture-sys](https://github.com/overture-sys) with Claude (Anthropic).
+
+Key lettering uses [Cinzel](https://github.com/NDISCOVER/Cinzel) by Natanael Gama, licensed under the SIL Open Font License 1.1 (`Cinzel-OFL.txt` in each plugin folder).
 
 ## Support
 

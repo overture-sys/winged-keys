@@ -22,9 +22,11 @@ const sd=http.createServer();
 function frame(s){const p=Buffer.from(s);const h=p.length<126?Buffer.from([0x81,p.length]):Buffer.from([0x81,126,p.length>>8,p.length&255]);return Buffer.concat([h,p]);}
 sd.on('upgrade',(req,s)=>{const k=crypto.createHash('sha1').update(req.headers['sec-websocket-key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
  s.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: '+k+'\r\n\r\n');sock=s;
- s.on('data',d=>{let o=0;while(o<d.length){let len=d[o+1]&127,off=o+2;if(len===126){len=d.readUInt16BE(o+2);off=o+4;}const m=d.slice(off,off+4);const pl=Buffer.from(d.slice(off+4,off+4+len).map((v,i)=>v^m[i%4]));if((d[o]&15)===1){const mm=JSON.parse(pl.toString());msgs.push(mm);if(mm.event==='getSettings'&&stored[mm.context])setTimeout(()=>send({event:'didReceiveSettings',context:mm.context,payload:{settings:stored[mm.context]}}),20);}o=off+4+len;}});});
+ let buf=Buffer.alloc(0);
+ s.on('data',d=>{buf=Buffer.concat([buf,d]);for(;;){if(buf.length<2)return;let len=buf[1]&127,off=2;if(len===126){if(buf.length<4)return;len=buf.readUInt16BE(2);off=4;}else if(len===127){if(buf.length<10)return;len=Number(buf.readBigUInt64BE(2));off=10;}if(buf.length<off+4+len)return;const op=buf[0]&15;const m=buf.slice(off,off+4);const pl=Buffer.from(buf.slice(off+4,off+4+len).map((v,j)=>v^m[j%4]));buf=buf.slice(off+4+len);if(op===1){const mm=JSON.parse(pl.toString());msgs.push(mm);if(mm.event==='getSettings'&&stored[mm.context])setTimeout(()=>send({event:'didReceiveSettings',context:mm.context,payload:{settings:stored[mm.context]}}),20);}}});});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const send=o=>sock.write(frame(JSON.stringify(o)));
+const lbl=(c)=>{const im=msgs.filter(m=>m.context===c&&m.event==='setImage').pop();if(!im)return '';const m=decodeURIComponent(im.payload.image).match(/data-label="([^"]*)"/);return m?m[1].replace(/&amp;/g,'&'):'';};
 const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
 (async()=>{
  await new Promise(r=>hermes.listen(0,'127.0.0.1',r));await new Promise(r=>dash.listen(0,'127.0.0.1',r));const dp=dash.address().port;await new Promise(r=>sd.listen(0,'127.0.0.1',r));
@@ -40,17 +42,17 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  send({event:'willAppear',action:'com.wingedkeys.hermes.ask',context:'A',payload:{settings:{}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.stop',context:'X',payload:{settings:{}}});
  await sleep(800);
- check('status green OK',/OK/.test(last('setTitle','S').payload.title)&&decodeURIComponent(last('setImage','S').payload.image).includes('#2ecc71'));
- check('ask shows default label before settings',last('setTitle','A').payload.title==='Ask');
+ check('status green OK',/OK/.test(lbl('S'))&&decodeURIComponent(last('setImage','S').payload.image).includes('#7fd19b'));
+ check('ask shows default label before settings',lbl('A')==='Ask');
  // bad key
  send({event:'didReceiveGlobalSettings',payload:{settings:{baseUrl:'http://127.0.0.1:'+hp,apiKey:'WRONG'}}});await sleep(500);
- check('bad key amber',/bad key/.test(last('setTitle','S').payload.title));
+ check('bad key amber',/bad key/.test(lbl('S')));
  send({event:'didReceiveGlobalSettings',payload:{settings:{baseUrl:'http://127.0.0.1:'+hp,apiKey:''}}});await sleep(500);
- check('no key amber',/no key/.test(last('setTitle','S').payload.title));
+ check('no key amber',/no key/.test(lbl('S')));
  send({event:'didReceiveGlobalSettings',payload:{settings:{baseUrl:'http://127.0.0.1:1',apiKey:'KEY'}}});await sleep(800);
- check('off red',/off/.test(last('setTitle','S').payload.title)&&decodeURIComponent(last('setImage','S').payload.image).includes('#e74c3c'));
+ check('off red',/off/.test(lbl('S'))&&decodeURIComponent(last('setImage','S').payload.image).includes('#d9705c'));
  send({event:'didReceiveGlobalSettings',payload:{settings:{baseUrl:'http://example.com:8642',apiKey:'KEY'}}});await sleep(500);
- check('remote refused',/local only/.test(last('setTitle','S').payload.title));
+ check('remote refused',/local only/.test(lbl('S')));
  const good={baseUrl:'http://127.0.0.1:'+hp,apiKey:'KEY',replyDir:path.join(home,'r')};
  send({event:'didReceiveGlobalSettings',payload:{settings:good}});await sleep(400);
  // ask success
@@ -70,7 +72,7 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  send({event:'keyDown',action:'com.wingedkeys.hermes.stop',context:'X',payload:{}});await sleep(2800);
  check('stop called',runState.stopped);
  check('stop ok',!!last('showOk','X'));
- check('ask shows stopped',msgs.filter(m=>m.event==='setTitle'&&m.context==='A').some(m=>m.payload.title==='stopped'));
+ check('ask shows stopped',msgs.filter(m=>m.event==='setImage'&&m.context==='A').some(m=>decodeURIComponent(m.payload.image).includes('data-label="stopped"')));
  check('key never in a sent message',!JSON.stringify(msgs).includes('"KEY"')&&!JSON.stringify(msgs).includes('Bearer'));
  // usage keys
  msgs.length=0;
@@ -81,28 +83,28 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'U3',payload:{settings:{metric:'active'}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'U4',payload:{settings:{}}});
  await sleep(900);
- check('usage tokens 28.7k',last('setTitle','U1').payload.title==='API tokens'&&decodeURIComponent(last('setImage','U1').payload.image).includes('>28.7k<'));
- check('usage latency 22.8s',decodeURIComponent(last('setImage','U2').payload.image).includes('>22.8s<'));
- check('usage active 2 blue',decodeURIComponent(last('setImage','U3').payload.image).includes('>2<')&&decodeURIComponent(last('setImage','U3').payload.image).includes('#3498db'));
- check('usage default metric tokens',last('setTitle','U4').payload.title==='API tokens');
+ check('usage tokens 28.7k',lbl('U1')==='API tokens'&&decodeURIComponent(last('setImage','U1').payload.image).includes('data-value=\"28.7k\"'));
+ check('usage latency 22.8s',decodeURIComponent(last('setImage','U2').payload.image).includes('data-value=\"22.8s\"'));
+ check('usage active 2 blue',decodeURIComponent(last('setImage','U3').payload.image).includes('data-value=\"2\"')&&decodeURIComponent(last('setImage','U3').payload.image).includes('#8fb3e8'));
+ check('usage default metric tokens',lbl('U4')==='API tokens');
  check('API key never sent to dashboard',dashHits.every(h=>h==='none'));
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:1'}}});await sleep(700);
- check('dashboard off shows red',last('setTitle','U1').payload.title==='press:start'&&decodeURIComponent(last('setImage','U1').payload.image).includes('#e74c3c'));
+ check('dashboard off shows red',lbl('U1')==='press to start'&&decodeURIComponent(last('setImage','U1').payload.image).includes('#d9705c'));
  dashBody={gateway_platforms:{}};send({event:'didReceiveGlobalSettings',payload:{settings:g2}});await sleep(700);
- check('missing metrics shows 0',decodeURIComponent(last('setImage','U1').payload.image).includes('>0<'));
+ check('missing metrics shows 0',decodeURIComponent(last('setImage','U1').payload.image).includes('data-value=\"0\"'));
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://example.com:9119'}}});await sleep(600);
- check('remote dashboard refused',last('setTitle','U1').payload.title==='local only');
+ check('remote dashboard refused',lbl('U1')==='local only');
  dashBody={gateway_platforms:{}};
  send({event:'didReceiveGlobalSettings',payload:{settings:g2}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'C1',payload:{settings:{metric:'cache'}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'C2',payload:{settings:{metric:'alltokens',days:'7'}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'C3',payload:{settings:{metric:'sessions'}}});
  await sleep(900);
- check('cache hit 50%',decodeURIComponent(last('setImage','C1').payload.image).includes('>50%<')&&last('setTitle','C1').payload.title==='Cache hit\ntoday');
- check('all tokens 28.7k over 7 days',decodeURIComponent(last('setImage','C2').payload.image).includes('>28.7k<')&&last('setTitle','C2').payload.title==='Tokens\n7 days'&&daysSeen.includes('7'));
- check('sessions 1',decodeURIComponent(last('setImage','C3').payload.image).includes('>1<'));
+ check('cache hit 50%',decodeURIComponent(last('setImage','C1').payload.image).includes('data-value=\"50%\"')&&lbl('C1')==='Cache hit\ntoday');
+ check('all tokens 28.7k over 7 days',decodeURIComponent(last('setImage','C2').payload.image).includes('data-value=\"28.7k\"')&&lbl('C2')==='Tokens\n7 days'&&daysSeen.includes('7'));
+ check('sessions 1',decodeURIComponent(last('setImage','C3').payload.image).includes('data-value=\"1\"'));
  dashTok='TOK2';send({event:'keyDown',action:'com.wingedkeys.hermes.usage',context:'C1',payload:{}});await sleep(700);
- check('token refreshed after restart',decodeURIComponent(last('setImage','C1').payload.image).includes('>50%<'));
+ check('token refreshed after restart',decodeURIComponent(last('setImage','C1').payload.image).includes('data-value=\"50%\"'));
  check('dashboard token never shown or sent to Stream Dock',!JSON.stringify(msgs).includes('TOK1')&&!JSON.stringify(msgs).includes('TOK2'));
  check('Hermes API key never sent to dashboard (analytics)',!dashHits.includes('Bearer KEY'));
  // auto-start: dashboard down; fake hermes "exe" starts it on the requested port
@@ -113,24 +115,24 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:'+freePort,hermesExe:wrapper}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{settings:{metric:'tokens'}}});
  await sleep(600);
- check('off key says press to start',last('setTitle','D1').payload.title==='press:start');
+ check('off key says press to start',lbl('D1')==='press to start');
  send({event:'keyDown',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{}});
  await sleep(5000);
  check('dashboard started with fixed args',fs.existsSync(fake+'.args')&&fs.readFileSync(fake+'.args','utf8')==='dashboard --no-open --port '+freePort);
- check('key shows value after start',decodeURIComponent(last('setImage','D1').payload.image).includes('>1.2k<'));
+ check('key shows value after start',decodeURIComponent(last('setImage','D1').payload.image).includes('data-value=\"1.2k\"'));
  // auto-start off
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:1',hermesExe:wrapper,autoStartDashboard:false}}});await sleep(400);
  msgs.length=0;send({event:'keyDown',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{}});await sleep(800);
 
- check('auto-start off does not start',!msgs.some(m=>m.event==='setTitle'&&m.payload.title==='starting'));
+ check('auto-start off does not start',!msgs.some(m=>m.event==='setImage'&&decodeURIComponent(m.payload.image).includes('data-label="starting"')));
  // platforms
  dashBody={gateway_platforms:{api_server:{state:'connected'},'morpheus:discord':{state:'connected'},'morpheus:telegram':{state:'connected'},'the_chef:telegram':{state:'connected'}}};
  send({event:'didReceiveGlobalSettings',payload:{settings:g2}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.platforms',context:'P1',payload:{settings:{}}});await sleep(700);
- check('platforms 4/4 green',decodeURIComponent(last('setImage','P1').payload.image).includes('>4/4<')&&decodeURIComponent(last('setImage','P1').payload.image).includes('#2ecc71'));
+ check('platforms 4/4 green',decodeURIComponent(last('setImage','P1').payload.image).includes('data-value=\"4/4\"')&&decodeURIComponent(last('setImage','P1').payload.image).includes('#7fd19b'));
  dashBody.gateway_platforms['morpheus:discord'].state='reconnecting';
  send({event:'keyDown',action:'com.wingedkeys.hermes.platforms',context:'P1',payload:{}});await sleep(700);
- check('platforms 3/4 red names discord',decodeURIComponent(last('setImage','P1').payload.image).includes('>3/4<')&&/discord/.test(last('setTitle','P1').payload.title));
+ check('platforms 3/4 red names discord',decodeURIComponent(last('setImage','P1').payload.image).includes('data-value=\"3/4\"')&&/discord/.test(lbl('P1')));
  // clipboard ask
  runState={n:0,stopped:false};stored.A={prompt:'Summarize this',label:'Clip',timeoutSec:30,useClipboard:true};
  send({event:'keyDown',action:'com.wingedkeys.hermes.ask',context:'A',payload:{}});await sleep(5500);
@@ -138,7 +140,7 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  // approval waiting
  runState={n:0,stopped:false,approval:true};stored.A={prompt:'do thing',label:'Do',timeoutSec:30};msgs.length=0;
  send({event:'keyDown',action:'com.wingedkeys.hermes.ask',context:'A',payload:{}});await sleep(4500);
- check('ask shows needs OK while waiting',msgs.some(m=>m.event==='setTitle'&&m.context==='A'&&m.payload.title==='needs OK'));
+ check('ask shows needs OK while waiting',msgs.some(m=>m.event==='setImage'&&m.context==='A'&&decodeURIComponent(m.payload.image).includes('data-label=\"'+'needs OK'+'\"')));
  check('no approval sent automatically',!auth.some(a=>a.includes('/approval')));
  await sleep(4000);
  check('ask finishes after approval elsewhere',!!last('showOk','A'));
@@ -187,7 +189,7 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  // API off explanation
  dashBody={gateway_running:true,gateway_platforms:{}};
  send({event:'didReceiveGlobalSettings',payload:{settings:{dashboardUrl:'http://127.0.0.1:'+dp,baseUrl:'http://127.0.0.1:1',apiKey:'KEY',envPath:envFile}}});await sleep(900);
- check('status explains API off',/API off/.test(last('setTitle','S').payload.title));
+ check('status explains API off',/API off/.test(lbl('S')));
  fs.writeFileSync(envFile,'API_SERVER_ENABLED=false\n');
  send({event:'sendToPlugin',action:'com.wingedkeys.hermes.status',context:'S',payload:{cmd:'readKey'}});await sleep(500);
  check('read key missing explained',/No API_SERVER_KEY/.test(last('sendToPropertyInspector').payload.text));
@@ -212,7 +214,7 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  // remote over plain http refused even when remote is allowed
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,baseUrl:'http://example.com:8642',allowRemote:true}}});await sleep(200);
  send({event:'keyDown',action:'com.wingedkeys.hermes.status',context:'S',payload:{}});await sleep(600);
- check('remote http refused (https required)',/local only/.test(last('setTitle','S').payload.title));
+ check('remote http refused (https required)',/local only/.test(lbl('S')));
  // double press: only one run, and Stop stops it
  runState={n:-100,stopped:false};stored.A={prompt:'long job',label:'L',timeoutSec:30};let posts=0;
  const countPosts=(req)=>{if(req.method==='POST'&&req.url==='/v1/runs')posts++;};hermes.on('request',countPosts);
@@ -230,7 +232,7 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  const origStop=runState;hermes.removeAllListeners('request');
  hermes.on('request',(req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{if(req.url.endsWith('/stop')){res.writeHead(500);return res.end('{}');}res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify(req.url==='/health'?{status:'ok'}:{status:'running'}));});});
  send({event:'keyDown',action:'com.wingedkeys.hermes.stop',context:'X',payload:{}});await sleep(2500);
- check('failed stop: Stop alerts and Ask does not say stopped',!!last('showAlert','X')&&!msgs.some(m=>m.event==='setTitle'&&m.context==='A'&&m.payload.title==='stopped'));
+ check('failed stop: Stop alerts and Ask does not say stopped',!!last('showAlert','X')&&!msgs.some(m=>m.event==='setImage'&&m.context==='A'&&decodeURIComponent(m.payload.image).includes('data-label=\"'+'stopped'+'\"')));
  hermes.off('request',countPosts);bogus.close();sink.close();redir.close();
  // per-agent usage: each profile has its own numbers; "all" adds them up
  const per={default:{total_input:null,total_output:null,total_cache_read:null,total_sessions:0,total_api_calls:null},
@@ -248,9 +250,9 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'AG2',payload:{settings:{metric:'sessions',agent:'morpheus'}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'AG3',payload:{settings:{metric:'alltokens',agent:'all'}}});
  await sleep(1200);
- check('all agents: sessions added up (0+5+1=6)',decodeURIComponent(last('setImage','AG1').payload.image).includes('>6<'));
- check('one agent: morpheus only (5)',decodeURIComponent(last('setImage','AG2').payload.image).includes('>5<')&&/morpheus/.test(last('setTitle','AG2').payload.title));
- check('all agents: tokens summed (4.1M)',decodeURIComponent(last('setImage','AG3').payload.image).includes('>4.1M<'));
+ check('all agents: sessions added up (0+5+1=6)',decodeURIComponent(last('setImage','AG1').payload.image).includes('data-value=\"6\"'));
+ check('one agent: morpheus only (5)',decodeURIComponent(last('setImage','AG2').payload.image).includes('data-value=\"5\"')&&/morpheus/.test(lbl('AG2')));
+ check('all agents: tokens summed (4.1M)',decodeURIComponent(last('setImage','AG3').payload.image).includes('data-value=\"4.1M\"'));
  check('invalid profile names are skipped',!seenProfiles.includes('bad name!'));
  msgs.length=0;send({event:'sendToPlugin',action:'com.wingedkeys.hermes.usage',context:'AG1',payload:{cmd:'profiles'}});await sleep(400);
  check('settings panel gets the agent list',JSON.stringify(last('sendToPropertyInspector','AG1').payload.profiles)==='["default","morpheus","the_chef"]');

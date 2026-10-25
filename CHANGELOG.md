@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 beta (2026-10-25)
+- New look: Greek gold. Keys are drawn with Roman capitals (Cinzel) and gold accents on dark plaques, with new icons (a goblet for Ask, a temple for Usage) and a laurel-and-wing mark.
+- Text is drawn as shapes on the key, so it looks the same on every device.
+- Restyled settings panel.
+- Bundles the Cinzel typeface (SIL Open Font License 1.1, see `Cinzel-OFL.txt`).
+
 ## 0.8.1 beta (2026-10-25)
 - Fix: Usage keys only counted the default Hermes profile, so "today" showed 0 when your agents (Morpheus etc.) did the work. Usage now adds up every agent by default, and each Usage key can be set to a single agent.
 
