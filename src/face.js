@@ -18,6 +18,7 @@ const ICONS = {
   open: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
   agent: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>',
   session: '<path d="M4 5h16v10H9l-5 4z"/><path d="M12 7.5v5M9.5 10h5"/>',
+  approve: '<path d="M12 3l7 3v5c0 4.5-3 7.8-7 10-4-2.2-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
 };
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -102,4 +103,29 @@ function iconFace(kind, color, title) {
   return frame(stack(items), { value: '', label: title });
 }
 
-module.exports = { PAL, valueFace, statusFace, iconFace, setTextSize };
+// Splits text into at most n lines of about w characters, breaking at spaces where it can.
+function wrap(str, w, n) {
+  const words = String(str).split(' ').filter(Boolean), lines = [];
+  let cur = '';
+  for (let word of words) {
+    while (word.length > w) { if (cur) { lines.push(cur); cur = ''; } lines.push(word.slice(0, w)); word = word.slice(w); }
+    if (!cur) cur = word;
+    else if (cur.length + 1 + word.length <= w) cur += ' ' + word;
+    else { lines.push(cur); cur = word; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > n) { lines.length = n; lines[n - 1] = lines[n - 1].slice(0, w - 3) + '...'; }
+  return lines;
+}
+
+// A request to read before answering it: a heading, the text (up to 3 lines) and a footer.
+// The text keeps its own letter case, since commands are case-sensitive.
+function previewFace(color, head, body, foot) {
+  const lines = wrap(body, Math.round(16 / Math.sqrt(S)), 3);
+  const items = [{ str: String(head).toUpperCase(), size: 15 * S, color, spacing: 0.08 }];
+  lines.forEach((l, i) => items.push({ str: l, size: 11 * S, color: PAL.text, weight: 500, gap: i === 0 ? 10 * S : 5 * S }));
+  if (foot) items.push({ str: String(foot).toUpperCase(), size: 10 * S, color: PAL.muted, weight: 500, spacing: 0.08, gap: 8 * S });
+  return frame(stack(items), { value: lines.join(' '), label: head });
+}
+
+module.exports = { PAL, valueFace, statusFace, iconFace, previewFace, setTextSize };

@@ -6,7 +6,7 @@
   "Category": "Winged Keys",
   "CategoryIcon": "static/category.png",
   "Icon": "static/plugin.png",
-  "Version": "0.10.0",
+  "Version": "0.11.0",
   "CodePathWin": "plugin/index.js",
   "CodePathMac": "plugin/index.js",
   "URL": "",
@@ -59,6 +59,28 @@
         "Knob"
       ],
       "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "static/key-idle.png",
+          "TitleAlignment": "bottom",
+          "FontSize": "9"
+        }
+      ]
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.approve",
+      "Name": "Approve",
+      "Tooltip": "Shows the request an Ask run is waiting on and approves it once when you press it.",
+      "Icon": "static/approve.png",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Information",
+        "Knob"
+      ],
       "States": [
         {
           "Image": "static/key-idle.png",
