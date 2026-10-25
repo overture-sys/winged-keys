@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.0 beta (unreleased)
+- **Model** key: switch which model Hermes uses for Ask keys. Press to step through Hermes's own default and the models you list in the settings panel (`model` or `provider:model`); turning a dial steps both ways. Each Ask run sends the chosen `model` (and `provider`) to Hermes; Hermes's default model is not changed.
+- Ask reply files name the provider and model that actually answered.
+- Test connection names the chosen model.
+
 ## 0.11.0 beta (unreleased)
 - **Approve** key: shows the approval request an Ask run is waiting on (the command, or what the agent wants to do) and approves it **once** when you press it. Never answers on its own, never chooses "session" or "always", and ignores a press in the first 1.5 seconds after a new request appears. Can be set to **Deny** instead.
 - Uses Hermes's `POST /v1/runs/{id}/approval` with the exact request id (and execution generation on current Hermes).

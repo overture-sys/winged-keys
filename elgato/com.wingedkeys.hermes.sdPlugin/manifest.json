@@ -3,7 +3,7 @@
   "UUID": "com.wingedkeys.hermes",
   "Name": "Winged Keys",
   "Author": "overture-sys",
-  "Version": "0.11.0.0",
+  "Version": "0.12.0.0",
   "Description": "Winged Keys (beta) for Hermes Agent: status, usage, ask and stop keys for your self-hosted Hermes. Not affiliated with Nous Research.",
   "Category": "Winged Keys",
   "CategoryIcon": "imgs/category",
@@ -270,6 +270,35 @@
         "Icon": "imgs/action-session",
         "TriggerDescription": {
           "Push": "New chat"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.model",
+      "Name": "Model",
+      "Tooltip": "Switches which model Hermes uses for Ask keys (Hermes's default or one you list).",
+      "Icon": "imgs/action-model",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-model",
+        "TriggerDescription": {
+          "Push": "Next model",
+          "Rotate": "Choose model"
         }
       },
       "States": [

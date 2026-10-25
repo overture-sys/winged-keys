@@ -104,6 +104,7 @@ const ICONS = {
   agent: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/>',
   session: '<path d="M4 5h16v10H9l-5 4z"/><path d="M12 7.5v5M9.5 10h5"/>',
   approve: '<path d="M12 3l7 3v5c0 4.5-3 7.8-7 10-4-2.2-7-5.5-7-10V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  model: '<rect x="7" y="7" width="10" height="10" rx="1"/><path d="M10 4v3M14 4v3M10 17v3M14 17v3M4 10h3M4 14h3M17 10h3M17 14h3"/>',
 };
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -321,6 +322,7 @@ function initKey(context) {
   else if (c.action === 'agent') show(context, COLORS.grey, agentName() + '\nagent');
   else if (c.action === 'session') show(context, COLORS.grey, label(context) + agentLine());
   else if (c.action === 'approve') showApprove(context);
+  else if (c.action === 'model') show(context, COLORS.grey, modelShort() + '\nmodel');
   else show(context, COLORS.red, label(context));
 }
 
@@ -335,6 +337,25 @@ function agentKey(a) {
   const ks = global.agentKeys && typeof global.agentKeys === 'object' ? global.agentKeys : {};
   return (a && typeof ks[a] === 'string' && ks[a]) || global.apiKey || '';
 }
+
+// ---- Models. Hermes has no endpoint that changes its default model; instead POST /v1/runs takes
+// a per-run "model" (and optional "provider") that Hermes always honors, unless the session already
+// has its own /model override. So the Model key picks which model Ask keys put in each run.
+// Entries are "model" or "provider:model", e.g. openrouter:anthropic/claude-sonnet-4.6.
+const MODEL_RE = /^[A-Za-z0-9._:\/@+-]{1,200}$/;
+const PROVIDER_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
+function modelList() {
+  const raw = Array.isArray(global.models) ? global.models.join('\n') : String(global.models || '');
+  return [...new Set(raw.split(/\r?\n/).map((l) => l.trim()).filter((l) => MODEL_RE.test(l)))].slice(0, 20);
+}
+// The chosen model, only while it is still in the list; '' = Hermes's own default.
+function activeModel() { const m = String(global.activeModel || ''); return m && modelList().includes(m) ? m : ''; }
+function modelRequest(m) {
+  const i = m.indexOf(':');
+  return i > 0 && i < m.length - 1 && PROVIDER_RE.test(m.slice(0, i)) ? { provider: m.slice(0, i), model: m.slice(i + 1) } : { model: m };
+}
+// Key text: the part after the last "/" (anthropic/claude-sonnet-4.6 -> claude-sonnet-4.6).
+function modelShort(m = activeModel()) { return m ? modelRequest(m).model.split('/').pop() : 'default'; }
 
 // ---- Hermes API
 function baseUrl() { return String(global.baseUrl || DEFAULTS.baseUrl).replace(/\/+$/, ''); }
@@ -638,6 +659,7 @@ async function askClaimed(context, rec, release) {
     const agent = activeAgent();
     rec.agent = agent;
     const body = { input };
+    if (activeModel()) Object.assign(body, modelRequest(activeModel()));
     const cont = c.settings.continueChat === true || c.settings.continueChat === 'true';
     if (c.settings.sessionId) body.session_id = c.settings.sessionId;
     else if (cont && conversations.get(agentName(agent))) body.session_id = conversations.get(agentName(agent));
@@ -671,7 +693,10 @@ async function askClaimed(context, rec, release) {
     if (final.status !== 'completed') throw new Error(final.status);
     const dir = replyDir();
     fs.mkdirSync(dir, { recursive: true });
-    const content = `# ${label(context)}\n\n**Prompt:** ${prompt}${input !== prompt ? ' (with clipboard text)' : ''}\n\n${final.output || ''}\n`;
+    // runtime = the provider/model that actually answered (Hermes reports it on finished runs).
+    const rt = final.runtime && typeof final.runtime === 'object' ? final.runtime : {};
+    const served = [rt.provider, rt.model].filter((v) => typeof v === 'string' && v).join(' / ').replace(/[\r\n]/g, ' ').slice(0, 200);
+    const content = `# ${label(context)}\n\n**Prompt:** ${prompt}${input !== prompt ? ' (with clipboard text)' : ''}\n${served ? `\n**Model:** ${served}\n` : ''}\n${final.output || ''}\n`;
     const base = `ask-${stamp()}`;
     let file = '';
     for (let n = 0; n < 100 && !file; n++) {
@@ -714,6 +739,7 @@ function onKey(context, kind) {
   else if (kind === 'agent') nextAgent(context);
   else if (kind === 'session') newChat(context);
   else if (kind === 'approve') approvePress(context);
+  else if (kind === 'model') nextModel(context, 1);
 }
 
 // ---- Approve key: shows the approval request an Ask run is waiting on, and answers it only when pressed.
@@ -810,6 +836,20 @@ async function nextAgent(context) {
   if (context) send({ event: 'showOk', context });
 }
 
+// ---- Model key: steps through Hermes's default and the models listed in the settings panel.
+function nextModel(context, step) {
+  const list = ['', ...modelList()];
+  if (list.length === 1) {
+    if (context) { send({ event: 'showAlert', context }); show(context, COLORS.amber, 'no models\nmodel'); setTimeout(() => initKey(context), 2500); }
+    return;
+  }
+  const n = list.length, i = Math.max(0, list.indexOf(activeModel()));
+  setGlobal({ activeModel: list[(((i + step) % n) + n) % n] });
+  dlog('model switched');
+  for (const [c] of ctx) initKey(c);
+  if (context) send({ event: 'showOk', context });
+}
+
 // ---- New chat key: forgets the current conversation for the active agent.
 function newChat(context) {
   const c = ctx.get(context); if (!c) return;
@@ -823,10 +863,11 @@ function newChat(context) {
   setTimeout(() => initKey(context), 2500);
 }
 
-// ---- Dials: turning a Usage dial steps through the metrics; other actions ignore turning.
+// ---- Dials: turning a Usage dial steps through the metrics, a Model dial through the models; other actions ignore turning.
 const METRIC_ORDER = ['cache', 'alltokens', 'sessions', 'calls', 'tokens', 'requests', 'latency', 'active'];
 function onRotate(context, kind, ticks) {
   const c = ctx.get(context);
+  if (c && kind === 'model' && ticks) return nextModel(context, Math.max(-20, Math.min(20, ticks)));
   if (!c || kind !== 'usage' || !ticks) return;
   const i = Math.max(0, METRIC_ORDER.indexOf(c.settings.metric || 'tokens'));
   const n = METRIC_ORDER.length;
@@ -891,6 +932,7 @@ async function testConnection() {
             : am.status === 401 || am.status === 403 ? 'NO  Agent "' + a + '" needs its own API_SERVER_KEY in profiles\\' + a + '\\.env (Hermes does not reuse the main key for named agents). Then use Read key from Hermes.'
             : 'NO  Agent "' + a + '" check failed (error ' + am.status + ').');
         }
+        if (activeModel()) lines.push('--  Ask keys ask Hermes for model "' + activeModel() + '". Each reply file names the model that answered.');
       }
     }
   } catch (e) {
