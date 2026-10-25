@@ -195,14 +195,35 @@ async function refreshDashToken() {
   const m = html.match(/__HERMES_SESSION_TOKEN__\W+([A-Za-z0-9_\-.]+)/);
   dashToken = m ? m[1] : '';
 }
-async function analytics(days) {
+// Each Hermes agent (profile) keeps its own usage records; the dashboard answers per profile.
+const PROFILE_RE = /^[A-Za-z0-9_-]{1,64}$/;
+async function listProfiles() {
+  try {
+    const st = await dashStatus();
+    const list = Array.isArray(st.profiles) ? st.profiles.filter((p) => typeof p === 'string' && PROFILE_RE.test(p)) : [];
+    return list.length ? list.slice(0, 32) : ['default'];
+  } catch { return ['default']; }
+}
+async function analytics(days, profile) {
+  const q = '/api/analytics/usage?days=' + days + (profile ? '&profile=' + encodeURIComponent(profile) : '');
   if (!dashToken) await refreshDashToken();
-  let res = await dashGet('/api/analytics/usage?days=' + days, true);
-  if (res.status === 401 || res.status === 403) { await refreshDashToken(); res = await dashGet('/api/analytics/usage?days=' + days, true); }
+  let res = await dashGet(q, true);
+  if (res.status === 401 || res.status === 403) { await refreshDashToken(); res = await dashGet(q, true); }
   if (!res.ok) throw Object.assign(new Error('http ' + res.status), { code: res.status === 401 || res.status === 403 ? 'AUTH' : 'HTTP' });
   const j = parseJson(res.text);
   if (!j || typeof j !== 'object') throw Object.assign(new Error('bad json'), { code: 'HTTP' });
   return j;
+}
+// Totals for one agent, or summed over every agent when agent is "all" / blank.
+const TOTAL_KEYS = ['total_input', 'total_output', 'total_cache_read', 'total_reasoning', 'total_sessions', 'total_api_calls'];
+async function usageTotals(days, agent) {
+  const profiles = agent && agent !== 'all' && PROFILE_RE.test(agent) ? [agent] : await listProfiles();
+  const sum = Object.fromEntries(TOTAL_KEYS.map((k) => [k, 0]));
+  for (const p of profiles) {
+    const t = (await analytics(days, p)).totals || {};
+    for (const k of TOTAL_KEYS) sum[k] += Number(t[k]) || 0;
+  }
+  return sum;
 }
 // Cache hit % = cache reads / (uncached input + cache reads). Hermes reports cache reads separately from input.
 function cachePct(tot) { const r = Number(tot.total_cache_read) || 0, i = Number(tot.total_input) || 0; return r + i > 0 ? Math.round((100 * r) / (r + i)) + '%' : '-'; }
@@ -250,8 +271,9 @@ async function refreshUsage(context) {
     const days = PERIOD[c.settings.days] ? Number(c.settings.days) : 1;
     const am = AMETRICS[c.settings.metric];
     try {
-      const data = await analytics(days);
-      return showValue(context, am.get(data.totals || {}), '#ffffff', am.label + '\n' + PERIOD[days]);
+      const agent = c.settings.agent && c.settings.agent !== 'all' && PROFILE_RE.test(c.settings.agent) ? c.settings.agent : '';
+      const totals = await usageTotals(days, agent);
+      return showValue(context, am.get(totals), '#ffffff', am.label + '\n' + (agent ? agent.slice(0, 10) + ' ' : '') + PERIOD[days]);
     } catch (e) {
       return showValue(context, e.code === 'REMOTE' ? 'local' : e.code === 'AUTH' ? 'auth' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press:start');
     }
@@ -553,6 +575,7 @@ async function onSetupCommand(m) {
     if (cmd === 'detect') r = await detect();
     else if (cmd === 'test') r = await testConnection();
     else if (cmd === 'readKey') r = await readKeyFromHermes();
+    else if (cmd === 'profiles') { reply(m, { cmd, profiles: await listProfiles() }); return; }
     else if (cmd === 'support') { send({ event: 'openUrl', payload: { url: SUPPORT_URL } }); return; }
     else if (cmd === 'useAddress') r = await useDetected(String((m.payload && m.payload.address) || ''));
     else return;

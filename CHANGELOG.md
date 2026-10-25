@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.8.1 beta (2026-10-25)
+- Fix: Usage keys only counted the default Hermes profile, so "today" showed 0 when your agents (Morpheus etc.) did the work. Usage now adds up every agent by default, and each Usage key can be set to a single agent.
+
 ## 0.8.0 beta (2026-10-25)
 First public beta. MIT license. Support link (Ko-fi) in the settings panel and README.
 - Dial support: Stream Dock N3/N4 knobs and touch strip, Elgato Stream Deck+ dials. Pressing a dial works like pressing a key; turning a Usage dial changes the metric.

@@ -79,13 +79,17 @@
     <option value="latency">p95 response time</option>
     <option value="active">Agents running now</option>
   </select>
+  <label>Agent (all-chats numbers)</label>
+  <select id="agent" style="width:100%;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px">
+    <option value="all">All agents (added up)</option>
+  </select>
   <label>Period (all-chats numbers)</label>
   <select id="days" style="width:100%;background:#1c1c1e;color:#eee;border:1px solid #555;border-radius:4px;padding:6px">
     <option value="1">Today</option>
     <option value="7">Last 7 days</option>
     <option value="30">Last 30 days</option>
   </select>
-  <div class="note">"All chats" numbers come from the dashboard's analytics and include Discord and Telegram. Cache hit % = cache reads / (input + cache reads).</div>
+  <div class="note">"All chats" numbers come from the dashboard's analytics and include Discord and Telegram. Each agent keeps its own records; "All agents" adds them up. Cache hit % = cache reads / (input + cache reads).</div>
 </div>
 
 <div id="openBox" class="hidden">
@@ -121,7 +125,7 @@
 </div>
 <script>
 let ws, uuid, action = '', actionFull = '';
-const G = ['baseUrl','apiKey','replyDir','dashboardUrl','hermesExe','webuiUrl','envPath'], L = ['label','prompt','sessionId','timeoutSec','metric','days','target','url'];
+const G = ['baseUrl','apiKey','replyDir','dashboardUrl','hermesExe','webuiUrl','envPath'], L = ['label','prompt','sessionId','timeoutSec','metric','days','target','url','agent'];
 const $ = (id) => document.getElementById(id);
 let globalS = {}, localS = {}, t1, t2;
 function sendMsg(o){ ws && ws.readyState === 1 && ws.send(JSON.stringify(o)); }
@@ -137,15 +141,23 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
   $('usageBox').className = action === 'usage' ? '' : 'hidden';
   $('openBox').className = action === 'open' ? '' : 'hidden';
   ws = new WebSocket('ws://127.0.0.1:' + port);
-  ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid }); };
+  ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid });
+    if (action === 'usage') sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'profiles' } }); };
   ws.onmessage = (e) => { const m = JSON.parse(e.data);
     if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => $(k).value = globalS[k] || ''); $('allowRemote').checked = !!globalS.allowRemote; $('autoStartDashboard').checked = globalS.autoStartDashboard !== false; }
+    if (m.event === 'sendToPropertyInspector' && m.payload && Array.isArray(m.payload.profiles)) {
+      const sel = $('agent'), keep = localS.agent || 'all';
+      while (sel.options.length > 1) sel.remove(1);
+      m.payload.profiles.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+      if (keep !== 'all' && !m.payload.profiles.includes(keep)) { const o = document.createElement('option'); o.value = keep; o.textContent = keep; sel.appendChild(o); }
+      sel.value = keep;
+    }
     if (m.event === 'sendToPropertyInspector' && m.payload && m.payload.text) {
       showResult(m.payload.text, m.payload.ok);
       foundAddr = m.payload.found || ''; $('btnUseAddr').className = foundAddr ? '' : 'hidden';
       if (foundAddr) $('btnUseAddr').textContent = 'Use this address: ' + foundAddr;
       sendMsg({ event:'getGlobalSettings', context:uuid }); }
-    if (m.event === 'didReceiveSettings') { localS = m.payload.settings || {}; L.forEach(k => { if (localS[k] || !['metric','days','target'].includes(k)) $(k).value = localS[k] || ''; }); $('useClipboard').checked = localS.useClipboard === true; $('openLabel').value = action === 'open' ? (localS.label || '') : ''; } };
+    if (m.event === 'didReceiveSettings') { localS = m.payload.settings || {}; L.forEach(k => { if (localS[k] || !['metric','days','target','agent'].includes(k)) $(k).value = localS[k] || ''; }); $('useClipboard').checked = localS.useClipboard === true; $('openLabel').value = action === 'open' ? (localS.label || '') : ''; } };
 }
 function showResult(text, ok){ const r = $('setupResult'); r.textContent = text; r.className = 'result ' + (ok ? 'ok' : 'bad'); }
 function cmd(c){ showResult('Working...', true); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:c } }); }

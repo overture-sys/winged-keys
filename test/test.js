@@ -4,7 +4,7 @@ const out=[];let ok=true;const check=(n,c)=>{console.log((c?'PASS ':'FAIL ')+n);
 let runState={n:0,stopped:false},auth=[];
 let dashTok='TOK1';const sample={daily:[],totals:{total_input:14277,total_output:155,total_cache_read:14282,total_reasoning:0,total_sessions:1,total_api_calls:2},period_days:1};const daysSeen=[];
 const dash=http.createServer((q,r)=>{if(q.url==='/'){r.writeHead(200,{'content-type':'text/html'});return r.end('<script>window.__HERMES_SESSION_TOKEN__="'+dashTok+'";</script>');}
- if(q.url.startsWith('/api/analytics/usage')){daysSeen.push(q.url.split('days=')[1]);if(q.headers.authorization!=='Bearer '+dashTok){r.writeHead(401);return r.end('{"detail":"Unauthorized"}');}r.writeHead(200,{'content-type':'application/json'});return r.end(JSON.stringify(sample));}
+ if(q.url.startsWith('/api/analytics/usage')){daysSeen.push(new URL(q.url,'http://x').searchParams.get('days'));if(q.headers.authorization!=='Bearer '+dashTok){r.writeHead(401);return r.end('{"detail":"Unauthorized"}');}r.writeHead(200,{'content-type':'application/json'});return r.end(JSON.stringify(sample));}
  if(q.url==='/api/status'){dashHits.push(q.headers.authorization||'none');r.writeHead(200,{'content-type':'application/json'});r.end(JSON.stringify(dashBody));}else{r.writeHead(401);r.end('{"detail":"Unauthorized"}');}});
 const dashHits=[];let dashBody={active_agents:2,gateway_platforms:{api_server:{metrics:{metrics_today:{day:'2026-10-23',requests:3,messages:3,tokens:28714,latency_p95_ms:22802.64}}}}};
 const hermes=http.createServer((req,res)=>{let b='';req.on('data',d=>b+=d);req.on('end',()=>{
@@ -232,6 +232,29 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  send({event:'keyDown',action:'com.wingedkeys.hermes.stop',context:'X',payload:{}});await sleep(2500);
  check('failed stop: Stop alerts and Ask does not say stopped',!!last('showAlert','X')&&!msgs.some(m=>m.event==='setTitle'&&m.context==='A'&&m.payload.title==='stopped'));
  hermes.off('request',countPosts);bogus.close();sink.close();redir.close();
+ // per-agent usage: each profile has its own numbers; "all" adds them up
+ const per={default:{total_input:null,total_output:null,total_cache_read:null,total_sessions:0,total_api_calls:null},
+   morpheus:{total_input:386620,total_output:25866,total_cache_read:3327337,total_sessions:5,total_api_calls:118},
+   the_chef:{total_input:100000,total_output:5000,total_cache_read:300000,total_sessions:1,total_api_calls:10}};
+ const seenProfiles=[];
+ const pd=http.createServer((q,r)=>{const u=new URL(q.url,'http://x');
+   if(u.pathname==='/'){r.end('<script>window.__HERMES_SESSION_TOKEN__="PT";</script>');return;}
+   if(u.pathname==='/api/status'){r.writeHead(200,{'content-type':'application/json'});r.end(JSON.stringify({gateway_running:true,profiles:['default','morpheus','the_chef','bad name!'],gateway_platforms:{}}));return;}
+   if(u.pathname==='/api/analytics/usage'){if(q.headers.authorization!=='Bearer PT'){r.writeHead(401);return r.end('{}');}const p=u.searchParams.get('profile')||'default';seenProfiles.push(p);r.writeHead(200,{'content-type':'application/json'});r.end(JSON.stringify({totals:per[p]||{}}));return;}
+   r.writeHead(404);r.end();});
+ await new Promise(r=>pd.listen(0,'127.0.0.1',r));
+ send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:'+pd.address().port}}});await sleep(200);
+ send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'AG1',payload:{settings:{metric:'sessions'}}});
+ send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'AG2',payload:{settings:{metric:'sessions',agent:'morpheus'}}});
+ send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'AG3',payload:{settings:{metric:'alltokens',agent:'all'}}});
+ await sleep(1200);
+ check('all agents: sessions added up (0+5+1=6)',decodeURIComponent(last('setImage','AG1').payload.image).includes('>6<'));
+ check('one agent: morpheus only (5)',decodeURIComponent(last('setImage','AG2').payload.image).includes('>5<')&&/morpheus/.test(last('setTitle','AG2').payload.title));
+ check('all agents: tokens summed (4.1M)',decodeURIComponent(last('setImage','AG3').payload.image).includes('>4.1M<'));
+ check('invalid profile names are skipped',!seenProfiles.includes('bad name!'));
+ msgs.length=0;send({event:'sendToPlugin',action:'com.wingedkeys.hermes.usage',context:'AG1',payload:{cmd:'profiles'}});await sleep(400);
+ check('settings panel gets the agent list',JSON.stringify(last('sendToPropertyInspector','AG1').payload.profiles)==='["default","morpheus","the_chef"]');
+ pd.close();
  msgs.length=0;send({event:'sendToPlugin',action:'com.wingedkeys.hermes.status',context:'S',payload:{cmd:'support'}});await sleep(300);
  check('support link opens Ko-fi only',msgs.some(m=>m.event==='openUrl'&&m.payload.url==='https://ko-fi.com/overturesys'));
  child.kill();hermes.close();dash.close();sd.close();

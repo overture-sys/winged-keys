@@ -21,7 +21,7 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 | **Status** | Green: Hermes is up and your API key works. Amber: no key, bad key, or a non-local address. Red: Hermes is off. |
 | **Ask** | Sends the key's preset prompt to Hermes as a run, waits, and saves the reply as a Markdown file. Optional: add your clipboard text to the prompt. Shows *needs OK* when the agent is waiting for your approval (approve it in your Hermes app or WebUI). |
 | **Stop** | Stops Ask runs in progress. |
-| **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off starts the dashboard. |
+| **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats, all agents added up or one agent; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off starts the dashboard. |
 | **Platforms** | How many Hermes connections are up, e.g. `4/4`. Turns red and names the one that dropped. |
 | **Open** | Opens the Hermes WebUI, the Hermes dashboard, the latest Ask reply, or a web address you set. |
 
