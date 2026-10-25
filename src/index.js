@@ -42,6 +42,8 @@ ws.on('message', (raw) => {
   switch (m.event) {
     case 'didReceiveGlobalSettings':
       global = { ...DEFAULTS, ...(m.payload && m.payload.settings) };
+      FACE.setTextSize(global.textSize);
+      for (const [c] of ctx) initKey(c);
       refreshAllStatus();
       refreshAllUsage();
       break;

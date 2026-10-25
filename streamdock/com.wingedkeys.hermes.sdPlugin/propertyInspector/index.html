@@ -58,6 +58,12 @@
   <br><button id="btnReadYes" class="primary">Yes, read my key</button><button id="btnReadNo">Cancel</button>
 </div>
 
+<label>Key text size (all keys)</label>
+<select id="textSize">
+  <option value="normal">Normal</option>
+  <option value="large" selected>Large</option>
+  <option value="xl">Extra large</option>
+</select>
 <h4>Hermes connection (all keys)</h4>
 <label>Hermes address</label>
 <input type="text" id="baseUrl" placeholder="http://127.0.0.1:8642">
@@ -137,7 +143,7 @@
 </div>
 <script>
 let ws, uuid, action = '', actionFull = '';
-const G = ['baseUrl','apiKey','replyDir','dashboardUrl','hermesExe','webuiUrl','envPath'], L = ['label','prompt','sessionId','timeoutSec','metric','days','target','url','agent'];
+const G = ['baseUrl','apiKey','replyDir','dashboardUrl','hermesExe','webuiUrl','envPath','textSize'], L = ['label','prompt','sessionId','timeoutSec','metric','days','target','url','agent'];
 const $ = (id) => document.getElementById(id);
 let globalS = {}, localS = {}, t1, t2;
 function sendMsg(o){ ws && ws.readyState === 1 && ws.send(JSON.stringify(o)); }
@@ -156,7 +162,7 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
   ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid });
     if (action === 'usage') sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'profiles' } }); };
   ws.onmessage = (e) => { const m = JSON.parse(e.data);
-    if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => $(k).value = globalS[k] || ''); $('allowRemote').checked = !!globalS.allowRemote; $('autoStartDashboard').checked = globalS.autoStartDashboard !== false; }
+    if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => { if (k === 'textSize') $(k).value = globalS[k] || 'large'; else $(k).value = globalS[k] || ''; }); $('allowRemote').checked = !!globalS.allowRemote; $('autoStartDashboard').checked = globalS.autoStartDashboard !== false; }
     if (m.event === 'sendToPropertyInspector' && m.payload && Array.isArray(m.payload.profiles)) {
       const sel = $('agent'), keep = localS.agent || 'all';
       while (sel.options.length > 1) sel.remove(1);
@@ -188,7 +194,7 @@ $('btnMake').onclick = () => {
   $('apiKey').value = key; saveGlobal();
 };
 $('btnCopy').onclick = () => { const a = $('envLines'); if (!a.value) return; a.select(); try { document.execCommand('copy'); showResult('Copied. Paste into your Hermes .env, then restart the gateway.', true); } catch(e) { showResult('Select the text and press Ctrl+C.', false); } };
-G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('autoStartDashboard').addEventListener('change', saveGlobal);
+G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('autoStartDashboard').addEventListener('change', saveGlobal); $('textSize').addEventListener('change', saveGlobal);
 L.forEach(k => { $(k).addEventListener('input', saveLocal); $(k).addEventListener('change', saveLocal); }); $('useClipboard').addEventListener('change', saveLocal); $('openLabel').addEventListener('input', saveLocal);
 </script>
 </body>

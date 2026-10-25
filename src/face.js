@@ -47,32 +47,57 @@ function frame(inner, meta) {
   return 'data:image/svg+xml;charset=utf8,' + encodeURIComponent(svg);
 }
 
-// A number with a small caption: usage, platforms.
+// Text size: "normal" | "large" | "xl". Large is the default.
+const SIZES = { normal: 1, large: 1.25, xl: 1.5 };
+let S = SIZES.large;
+function setTextSize(name) { S = SIZES[name] || SIZES.large; }
+
+// Stacks lines of [text, opts] vertically, centered in the key below the top line.
+function stack(items) {
+  const cap = (sz) => sz * 0.72; // Cinzel cap height ~0.7 em
+  const heights = items.map((it) => it.h != null ? it.h : cap(it.size));
+  const gaps = items.map((it, i) => (i === 0 ? 0 : (it.gap != null ? it.gap : 8 * S)));
+  const total = heights.reduce((a, b) => a + b, 0) + gaps.reduce((a, b) => a + b, 0);
+  let y = 76 - total / 2;
+  let out = '';
+  items.forEach((it, i) => {
+    y += gaps[i];
+    if (it.draw) out += it.draw(y, heights[i]);
+    else out += text(it.str, { size: it.size, y: y + heights[i], color: it.color, weight: it.weight || 700, spacing: it.spacing || 0, maxW: it.maxW || 128 });
+    y += heights[i];
+  });
+  return out;
+}
+
+// A number with a caption: usage, platforms.
 function valueFace(value, color, caption) {
   const v = String(value).slice(0, 8);
-  const lines = String(caption || '').split('\n').filter(Boolean);
-  let inner = text(v, { size: v.length > 4 ? 40 : 46, y: lines.length > 1 ? 76 : 82, color, maxW: 122 });
-  if (lines[0]) inner += text(lines[0].toUpperCase(), { size: 12, y: lines.length > 1 ? 102 : 112, color: PAL.muted, weight: 500, spacing: 0.16 });
-  if (lines[1]) inner += text(lines[1].toUpperCase(), { size: 11, y: 120, color: PAL.muted, weight: 500, spacing: 0.16 });
-  return frame(inner, { value: v, label: caption });
+  const lines = String(caption || '').split('\n').filter(Boolean).slice(0, 2);
+  const valSize = (v.length > 4 ? 40 : 48) * Math.min(S, 1.15);
+  const items = [{ str: v, size: valSize, color, maxW: 128 }];
+  lines.forEach((l, i) => items.push({ str: l.toUpperCase(), size: 13 * S, color: PAL.muted, weight: 500, spacing: 0.1, gap: i === 0 ? 12 * S : 5 * S }));
+  return frame(stack(items), { value: v, label: caption });
 }
 
 // Status: a colored dot, a name and a state word.
 function statusFace(color, title) {
   const [name = 'Hermes', state = ''] = String(title).split('\n');
-  const inner = `<circle cx="72" cy="44" r="7" fill="${color}"/>`
-    + text(name.toUpperCase(), { size: 17, y: 84, color: PAL.text, spacing: 0.12 })
-    + text(state.toUpperCase(), { size: 12, y: 110, color: state ? color : PAL.muted, weight: 500, spacing: 0.16 });
-  return frame(inner, { value: state, label: title });
+  const r = 6 * S;
+  const items = [
+    { h: r * 2, draw: (y) => `<circle cx="72" cy="${(y + r).toFixed(1)}" r="${r.toFixed(1)}" fill="${color}"/>` },
+    { str: name.toUpperCase(), size: 18 * S, color: PAL.text, spacing: 0.08, gap: 12 * S },
+  ];
+  if (state) items.push({ str: state.toUpperCase(), size: 14 * S, color, weight: 500, spacing: 0.08, gap: 9 * S });
+  return frame(stack(items), { value: state, label: title });
 }
 
 // An action icon with a label underneath; the icon takes the state color when busy or in error.
 function iconFace(kind, color, title) {
-  const lines = String(title).split('\n').filter(Boolean);
-  const icon = `<g transform="translate(50 26) scale(1.8333)" fill="none" stroke="${color}" color="${color}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${ICONS[kind] || ICONS.open}</g>`;
-  let inner = icon + text((lines[0] || '').toUpperCase(), { size: 14, y: lines.length > 1 ? 100 : 108, color: PAL.text, spacing: 0.12 });
-  if (lines[1]) inner += text(lines[1].toUpperCase(), { size: 11, y: 120, color: PAL.muted, weight: 500, spacing: 0.16 });
-  return frame(inner, { value: '', label: title });
+  const lines = String(title).split('\n').filter(Boolean).slice(0, 2);
+  const iconPx = Math.round(46 / Math.pow(S, 0.3));
+  const items = [{ h: iconPx, draw: (y) => `<g transform="translate(${(72 - iconPx / 2).toFixed(1)} ${y.toFixed(1)}) scale(${(iconPx / 24).toFixed(4)})" fill="none" stroke="${color}" color="${color}" stroke-width="${(1.3 * Math.sqrt(S)).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round">${ICONS[kind] || ICONS.open}</g>` }];
+  lines.forEach((l, i) => items.push({ str: l.toUpperCase(), size: (i === 0 ? 15 : 12) * S, color: i === 0 ? PAL.text : PAL.muted, weight: i === 0 ? 700 : 500, spacing: 0.08, gap: i === 0 ? 12 * S : 5 * S }));
+  return frame(stack(items), { value: '', label: title });
 }
 
-module.exports = { PAL, valueFace, statusFace, iconFace };
+module.exports = { PAL, valueFace, statusFace, iconFace, setTextSize };
