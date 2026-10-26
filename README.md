@@ -24,7 +24,7 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 | **Ask** | Sends the key's preset prompt to Hermes as a run, waits, and saves the reply as a Markdown file. Optional: add your clipboard text to the prompt (turn on **Ask with clipboard** under **Optional features** first). Shows *needs OK* when the agent is waiting for your approval (approve it with an **Approve** key, or in your Hermes app or WebUI). |
 | **Approve** | When an Ask run is waiting for your OK, shows what the agent wants to run (for example `rm -rf build`). Press to approve it **once**. Can be set to **Deny** instead. A press right after a new request appears only shows it, so nothing is approved unseen. |
 | **Stop** | Stops Ask runs in progress. |
-| **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats, all agents added up or one agent; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off starts the dashboard. |
+| **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats, all agents added up or one agent; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off can start the dashboard (turn on **Start the dashboard from Usage keys** under **Optional features**). |
 | **Platforms** | How many Hermes connections are up, e.g. `4/4`. Turns red and names the one that dropped. |
 | **Open** | Opens the Hermes WebUI, the Hermes dashboard, the latest Ask reply, or a web address you set. |
 | **Agent** | Switches which Hermes agent (profile) the keys talk to, for example Morpheus or The Chef. Ask, Stop, Status and New chat follow it. |
@@ -87,11 +87,11 @@ The full list of what the plugin reads, when, and where data goes is in [SECURIT
 - Your API key is typed into the settings panel and stored by the Stream Dock / Stream Deck app. It may be stored unencrypted. It is never written to logs, shown on a key, or sent to the dashboard. It is sent only to the Hermes address in your settings; **Find Hermes** only proposes an address (taken from the dashboard and checked to answer like Hermes); it is saved only when you click **Use this address**.
 - **Make a key** shows the new key in plain text. Don't use it while streaming or sharing your screen.
 - Usage keys read the dashboard's session token from the dashboard page the same way your browser does, keep it in memory only, and never display it.
-- **Read key from Hermes** and **Ask with clipboard** are **off by default**. Turn them on under **Optional features** in the settings panel.
+- **Read key from Hermes**, **Ask with clipboard** and **Start the dashboard from Usage keys** are **off by default**. Turn them on under **Optional features** in the settings panel.
 - **Read key from Hermes** opens your Hermes `.env` (the standard location, or one you set) and copies only the `API_SERVER_KEY` line into the plugin's settings. It runs only when you click it and confirm a warning. Network paths are refused. Use it only on your own computer.
 - Clipboard Ask sends whatever you have copied to the agent. Neither Stream Dock nor Stream Deck lets plugins read the clipboard, so on Windows the plugin reads it with PowerShell (`Get-Clipboard`). Don't use it with passwords on the clipboard.
 - The plugin never approves agent actions for you. The **Approve** key answers only when you press it, only for the exact request it has been showing for at least 1.5 seconds (checked with Hermes again just before answering), only for runs started from your own Ask keys, and only with *once* or *deny*, never *always*. The command preview comes from Hermes, which removes secrets from it first; it is not written to the log.
-- The plugin starts programs only with fixed arguments and never through a shell: hermes.exe with `dashboard --no-open --port <port>` (the hermes.exe path is the standard one or the full path you set), the OS clipboard reader, and the OS "open file" command for its own reply files.
+- The plugin starts programs only with fixed arguments and never through a shell: hermes.exe with `dashboard --no-open --port <port>` (only with **Start the dashboard from Usage keys** on; the hermes.exe path is the standard one or the full path you set), the OS clipboard reader, and the OS "open file" command for its own reply files.
 
 ## Known limits
 

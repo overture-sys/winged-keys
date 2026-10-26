@@ -53,6 +53,8 @@
 <div class="note">Adds a button that, when you click it and confirm, opens your Hermes <code>.env</code> files on this PC and copies only their <code>API_SERVER_KEY</code> lines into these settings. Named agents (not "default") get their keys this way.</div>
 <label class="row"><input type="checkbox" id="allowClipboard"> Ask with clipboard</label>
 <div class="note">Lets Ask keys that have "Add the clipboard text" ticked read your clipboard when you press them, and send it to Hermes with the prompt. On Windows the clipboard is read with PowerShell (<code>Get-Clipboard</code>), because Stream Dock has no clipboard feature for plugins. While this is off, those keys show "clipboard off" and send nothing.</div>
+<label class="row"><input type="checkbox" id="allowStartDashboard"> Start the dashboard from Usage keys</label>
+<div class="note">Pressing a Usage or Platforms key while the Hermes dashboard is off starts it (<code>hermes.exe dashboard</code>, using the hermes.exe location below). While this is off, those keys show "dashboard off" and start nothing.</div>
 <div class="note">SECURITY.md (in the project on GitHub) lists exactly what each feature reads and when.</div>
 
 <div id="readKeyBox" class="hidden">
@@ -83,7 +85,6 @@
 <input type="text" id="webuiUrl" placeholder="http://127.0.0.1:8787">
 <label>Hermes dashboard address (Usage and Platforms keys)</label>
 <input type="text" id="dashboardUrl" placeholder="http://127.0.0.1:9119">
-<label class="row"><input type="checkbox" id="autoStartDashboard"> Pressing a Usage key starts the dashboard if it is off</label>
 <div id="envPathBox" class="hidden">
 <label>Hermes .env location (optional, for "Read key")</label>
 <input type="text" id="envPath" placeholder="default: %LOCALAPPDATA%\hermes\.env">
@@ -186,7 +187,7 @@ const $ = (id) => document.getElementById(id);
 let globalS = {}, localS = {}, t1, t2;
 function sendMsg(o){ ws && ws.readyState === 1 && ws.send(JSON.stringify(o)); }
 function saveGlobal(){ clearTimeout(t1); t1 = setTimeout(() => {
-  G.forEach(k => globalS[k] = $(k).value.trim()); globalS.allowRemote = $('allowRemote').checked; globalS.autoStartDashboard = $('autoStartDashboard').checked;
+  G.forEach(k => globalS[k] = $(k).value.trim()); globalS.allowRemote = $('allowRemote').checked; globalS.allowStartDashboard = $('allowStartDashboard').checked; delete globalS.autoStartDashboard;
   globalS.allowReadKey = $('allowReadKey').checked; globalS.allowClipboard = $('allowClipboard').checked; applyOptIns();
   sendMsg({ event:'setGlobalSettings', context:uuid, payload:globalS }); }, 400); }
 function saveLocal(){ clearTimeout(t2); t2 = setTimeout(() => {
@@ -205,7 +206,7 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
   ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid });
     if (action === 'usage') sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'profiles' } }); };
   ws.onmessage = (e) => { const m = JSON.parse(e.data);
-    if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => { if (k === 'textSize') $(k).value = globalS[k] || 'large'; else $(k).value = globalS[k] || ''; }); $('allowRemote').checked = !!globalS.allowRemote; $('autoStartDashboard').checked = globalS.autoStartDashboard !== false; $('allowReadKey').checked = globalS.allowReadKey === true; $('allowClipboard').checked = globalS.allowClipboard === true; applyOptIns(); }
+    if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => { if (k === 'textSize') $(k).value = globalS[k] || 'large'; else $(k).value = globalS[k] || ''; }); $('allowRemote').checked = !!globalS.allowRemote; $('allowStartDashboard').checked = globalS.allowStartDashboard === true; $('allowReadKey').checked = globalS.allowReadKey === true; $('allowClipboard').checked = globalS.allowClipboard === true; applyOptIns(); }
     if (m.event === 'sendToPropertyInspector' && m.payload && Array.isArray(m.payload.profiles)) {
       const sel = $('agent'), keep = localS.agent || 'all';
       while (sel.options.length > 1) sel.remove(1);
@@ -244,7 +245,7 @@ $('btnMake').onclick = () => {
   $('apiKey').value = key; saveGlobal();
 };
 $('btnCopy').onclick = () => { const a = $('envLines'); if (!a.value) return; a.select(); try { document.execCommand('copy'); showResult('Copied. Paste into your Hermes .env, then restart the gateway.', true); } catch(e) { showResult('Select the text and press Ctrl+C.', false); } };
-G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('autoStartDashboard').addEventListener('change', saveGlobal); $('allowReadKey').addEventListener('change', saveGlobal); $('allowClipboard').addEventListener('change', saveGlobal); $('textSize').addEventListener('change', saveGlobal);
+G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('allowStartDashboard').addEventListener('change', saveGlobal); $('allowReadKey').addEventListener('change', saveGlobal); $('allowClipboard').addEventListener('change', saveGlobal); $('textSize').addEventListener('change', saveGlobal);
 L.forEach(k => { $(k).addEventListener('input', saveLocal); $(k).addEventListener('change', saveLocal); }); $('useClipboard').addEventListener('change', saveLocal); $('continueChat').addEventListener('change', saveLocal); $('openChat').addEventListener('change', saveLocal); $('denyMode').addEventListener('change', saveLocal); $('openLabel').addEventListener('input', saveLocal);
 </script>
 </body>

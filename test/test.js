@@ -89,7 +89,7 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  check('usage default metric tokens',lbl('U4')==='API tokens');
  check('API key never sent to dashboard',dashHits.every(h=>h==='none'));
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:1'}}});await sleep(700);
- check('dashboard off shows red',lbl('U1')==='press to start'&&decodeURIComponent(last('setImage','U1').payload.image).includes('#d9705c'));
+ check('dashboard off shows red',lbl('U1')==='dashboard off'&&decodeURIComponent(last('setImage','U1').payload.image).includes('#d9705c'));
  dashBody={gateway_platforms:{}};send({event:'didReceiveGlobalSettings',payload:{settings:g2}});await sleep(700);
  check('missing metrics shows 0',decodeURIComponent(last('setImage','U1').payload.image).includes('data-value=\"0\"'));
  send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://example.com:9119'}}});await sleep(600);
@@ -112,16 +112,21 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  fs.writeFileSync(fake,"const http=require('http');const a=process.argv;const port=a[a.indexOf('--port')+1];require('fs').writeFileSync(process.argv[1]+'.args',a.slice(2).join(' '));http.createServer((q,r)=>{r.writeHead(200,{'content-type':'application/json'});r.end(JSON.stringify({gateway_platforms:{api_server:{metrics:{metrics_today:{tokens:1234}}}}}));}).listen(port,'127.0.0.1');setTimeout(()=>process.exit(0),8000);");
  const wrapper=path.join(home,'fakehermes.sh');fs.writeFileSync(wrapper,'#!/bin/sh\nexec node '+fake+' "$@"\n');fs.chmodSync(wrapper,0o755);
  const freePort=await new Promise(r=>{const sv=http.createServer().listen(0,'127.0.0.1',()=>{const p=sv.address().port;sv.close(()=>r(p));});});
- send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:'+freePort,hermesExe:wrapper}}});
+ send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:'+freePort,hermesExe:wrapper,autoStartDashboard:true}}});
  send({event:'willAppear',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{settings:{metric:'tokens'}}});
  await sleep(600);
+ // dashboard start is opt-in: off by default, and the old autoStartDashboard:true is ignored
+ check('start off by default: key says dashboard off',lbl('D1')==='dashboard off');
+ send({event:'keyDown',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{}});await sleep(1500);
+ check('start off by default: nothing started',!fs.existsSync(fake+'.args'));
+ send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:'+freePort,hermesExe:wrapper,allowStartDashboard:true}}});await sleep(600);
  check('off key says press to start',lbl('D1')==='press to start');
  send({event:'keyDown',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{}});
  await sleep(5000);
  check('dashboard started with fixed args',fs.existsSync(fake+'.args')&&fs.readFileSync(fake+'.args','utf8')==='dashboard --no-open --port '+freePort);
  check('key shows value after start',decodeURIComponent(last('setImage','D1').payload.image).includes('data-value=\"1.2k\"'));
  // auto-start off
- send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:1',hermesExe:wrapper,autoStartDashboard:false}}});await sleep(400);
+ send({event:'didReceiveGlobalSettings',payload:{settings:{...good,dashboardUrl:'http://127.0.0.1:1',hermesExe:wrapper,allowStartDashboard:false}}});await sleep(400);
  msgs.length=0;send({event:'keyDown',action:'com.wingedkeys.hermes.usage',context:'D1',payload:{}});await sleep(800);
 
  check('auto-start off does not start',!msgs.some(m=>m.event==='setImage'&&decodeURIComponent(m.payload.image).includes('data-label="starting"')));

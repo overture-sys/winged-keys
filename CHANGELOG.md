@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.13.0 beta (unreleased)
-- **Read key from Hermes** and **Ask with clipboard** are now opt-in, off by default. Turn them on under the new **Optional features** section in the settings panel. While off, the Read key button is hidden and refused, and an Ask key set to use the clipboard shows *clipboard off* and sends nothing. If you used either before, tick it once after updating.
+- **Read key from Hermes**, **Ask with clipboard** and **Start the dashboard from Usage keys** are now opt-in, off by default. Turn them on under the new **Optional features** section in the settings panel. While off, the Read key button is hidden and refused, and an Ask key set to use the clipboard shows *clipboard off* and sends nothing, and Usage and Platforms keys show *dashboard off* instead of starting the dashboard. The old "starts the dashboard" setting (on by default) is replaced and ignored. If you used any of these before, tick it once after updating.
 - New `SECURITY.md`: exactly what the plugin reads, when, where data goes, and which programs it starts.
 - Clipboard reading still uses PowerShell on Windows: neither the Stream Dock nor the Stream Deck plugin API offers a clipboard read.
 

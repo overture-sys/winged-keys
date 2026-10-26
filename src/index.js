@@ -11,9 +11,10 @@ const { spawn, execFile } = require('child_process');
 const args = {};
 for (let i = 2; i + 1 < process.argv.length; i += 2) args[process.argv[i].replace(/^-+/, '')] = process.argv[i + 1];
 
-const DEFAULTS = { webuiUrl: 'http://127.0.0.1:8787', baseUrl: 'http://127.0.0.1:8642', apiKey: '', allowRemote: false, replyDir: '', dashboardUrl: 'http://127.0.0.1:9119', hermesExe: '', autoStartDashboard: true, allowReadKey: false, allowClipboard: false };
-// Opt-in features (off until the user ticks them in the settings panel): reading the key from the
-// Hermes .env files, and adding the clipboard to Ask prompts. See SECURITY.md.
+const DEFAULTS = { webuiUrl: 'http://127.0.0.1:8787', baseUrl: 'http://127.0.0.1:8642', apiKey: '', allowRemote: false, replyDir: '', dashboardUrl: 'http://127.0.0.1:9119', hermesExe: '', allowStartDashboard: false, allowReadKey: false, allowClipboard: false };
+// Opt-in features (off until the user ticks them in the settings panel): starting the Hermes dashboard,
+// reading the key from the Hermes .env files, and adding the clipboard to Ask prompts. See SECURITY.md.
+// allowStartDashboard replaces the old autoStartDashboard setting (on by default), which is ignored.
 const optedIn = (name) => global[name] === true || global[name] === 'true';
 let global = { ...DEFAULTS };
 const ctx = new Map();      // context -> { action, settings }
@@ -318,7 +319,7 @@ async function refreshUsage(context) {
       const totals = await usageTotals(days, agent);
       return showValue(context, am.get(totals), c.settings.metric === 'cache' ? FACE.PAL.gold : '#ffffff', am.label + '\n' + (agent ? agent.slice(0, 10) + ' ' : '') + PERIOD[days]);
     } catch (e) {
-      return showValue(context, e.code === 'REMOTE' ? 'local' : e.code === 'AUTH' ? 'auth' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press to start');
+      return showValue(context, e.code === 'REMOTE' ? 'local' : e.code === 'AUTH' ? 'auth' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : offHint());
     }
   }
   const metric = METRICS[c.settings.metric] ? c.settings.metric : 'tokens';
@@ -329,13 +330,15 @@ async function refreshUsage(context) {
     const v = METRICS[metric].get(st, m);
     showValue(context, v, metric === 'active' && Number(st.active_agents) > 0 ? COLORS.blue : '#ffffff', METRICS[metric].label);
   } catch (e) {
-    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press to start');
+    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : offHint());
   }
 }
+// What an off Usage or Platforms key suggests: pressing only helps when starting the dashboard is turned on.
+function offHint() { return optedIn('allowStartDashboard') ? 'press to start' : 'dashboard off'; }
 async function dashUp() { try { const r = await dashGet('/api/status', false); return r.ok; } catch { return false; } }
 async function usagePress(context, refresh = refreshUsage) {
   if (await dashUp()) return refresh(context);
-  if (global.autoStartDashboard === false) return refresh(context);
+  if (!optedIn('allowStartDashboard')) return refresh(context);
   const r = startDashboard();
   if (r !== 'starting') { showValue(context, r === 'remote' ? 'local' : 'fail', COLORS.red, 'dashboard'); return; }
   showValue(context, '...', COLORS.amber, 'starting');
@@ -354,7 +357,7 @@ async function refreshPlatforms(context) {
     const name = bad[0][0].split(':').pop().replace('api_server', 'api').slice(0, 10);
     showValue(context, txt, COLORS.red, name + ' ' + String(bad[0][1] && bad[0][1].state || 'down').slice(0, 10));
   } catch (e) {
-    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : 'press to start');
+    showValue(context, e.code === 'REMOTE' ? 'local' : 'off', COLORS.red, e.code === 'REMOTE' ? 'local only' : offHint());
   }
 }
 function refreshAllPlatforms() { for (const [c, v] of ctx) if (v.action === 'platforms') refreshPlatforms(c); }

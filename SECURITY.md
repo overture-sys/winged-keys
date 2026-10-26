@@ -34,7 +34,7 @@ The plugin has no analytics, telemetry, update check or crash reporting.
 
 ## Optional features (off by default)
 
-Two features read sensitive things on your PC. Both are **off** until you tick them under **Optional features** in the settings panel. While they are off, the plugin does not do them at all.
+Three features read sensitive things on your PC or start a program on their own. All three are **off** until you tick them under **Optional features** in the settings panel. While they are off, the plugin does not do them at all.
 
 ### Read key from Hermes
 
@@ -59,6 +59,14 @@ Two features read sensitive things on your PC. Both are **off** until you tick t
 - **When it's off:** an Ask key with the clipboard box ticked shows *clipboard off*, alerts, and sends nothing. The clipboard is not read.
 - Don't use it with passwords or private text on the clipboard.
 
+### Start the dashboard from Usage keys
+
+- **What it does:** starts the Hermes dashboard (`hermes.exe dashboard --no-open --port <port>`, see "Programs the plugin starts").
+- **When:** only when you press a Usage or Platforms key while the dashboard is off. Never on a timer.
+- **What it checks first:** whether `%LOCALAPPDATA%\hermes\bin\hermes.exe` exists, unless you set a full hermes.exe location.
+- **When it's off:** those keys show *dashboard off* and start nothing. Start the dashboard yourself and they pick it up within a minute.
+- This replaces the old "Pressing a Usage key starts the dashboard if it is off" setting, which was on by default. That old setting is ignored, so after updating it is off until you tick the new one.
+
 ## Other things the plugin reads
 
 | What | When | Why |
@@ -66,7 +74,6 @@ Two features read sensitive things on your PC. Both are **off** until you tick t
 | The dashboard's web page, to find its session token (`__HERMES_SESSION_TOKEN__`) | Usage keys, when the token is missing or refused | The dashboard's usage numbers need it, the same way your browser gets it. Kept in memory only, never saved, logged or shown. |
 | Folder names in `<Hermes home>\profiles` (names only, not contents) | Pressing the Agent key | To list your agents. |
 | File names in your reply folder | Open key set to "Latest Ask reply" | To find the newest `ask-*.md` file. |
-| Whether `%LOCALAPPDATA%\hermes\bin\hermes.exe` exists | Pressing a Usage key while the dashboard is off | To start the dashboard (see below). |
 
 ## Files the plugin writes
 
@@ -78,7 +85,7 @@ Two features read sensitive things on your PC. Both are **off** until you tick t
 
 Always with fixed arguments and never through a shell:
 
-- `hermes.exe dashboard --no-open --port <port>`, when you press a Usage or Platforms key and the dashboard is off. Turn this off with "Pressing a Usage key starts the dashboard if it is off". The path is the standard one or a full local path you set; on Windows the plugin never falls back to searching `PATH`.
+- `hermes.exe dashboard --no-open --port <port>`, when you press a Usage or Platforms key and the dashboard is off, only with **Start the dashboard from Usage keys** on. The path is the standard one or a full local path you set; on Windows the plugin never falls back to searching `PATH`.
 - `explorer.exe <file>` (`open` on macOS, `xdg-open` on Linux), to open the newest reply file from an Open key.
 - The clipboard command above, only with **Ask with clipboard** on.
 
