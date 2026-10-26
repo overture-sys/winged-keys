@@ -1,0 +1,256 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "UUID": "com.wingedkeys.hermes",
+  "Name": "Winged Keys",
+  "Author": "overture-sys",
+  "Version": "0.10.0.0",
+  "Description": "Winged Keys (beta) for Hermes Agent: status, usage, ask and stop keys for your self-hosted Hermes. Not affiliated with Nous Research.",
+  "Category": "Winged Keys",
+  "CategoryIcon": "imgs/category",
+  "Icon": "imgs/plugin",
+  "CodePath": "plugin/index.js",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.4"
+  },
+  "Nodejs": {
+    "Version": "20"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "13"
+    }
+  ],
+  "Actions": [
+    {
+      "UUID": "com.wingedkeys.hermes.status",
+      "Name": "Status",
+      "Tooltip": "Shows whether Hermes is running (green), needs a key (amber) or is off (red).",
+      "Icon": "imgs/action-status",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-status",
+        "TriggerDescription": {
+          "Push": "Refresh"
+        }
+      }
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.ask",
+      "Name": "Ask",
+      "Tooltip": "Sends a preset prompt to Hermes and saves the reply to a file.",
+      "Icon": "imgs/action-ask",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-ask",
+        "TriggerDescription": {
+          "Push": "Send prompt"
+        }
+      }
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.stop",
+      "Name": "Stop",
+      "Tooltip": "Stops the Ask runs that are in progress.",
+      "Icon": "imgs/action-stop",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-stop",
+        "TriggerDescription": {
+          "Push": "Stop runs"
+        }
+      }
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.usage",
+      "Name": "Usage",
+      "Tooltip": "Shows today's Hermes API usage: tokens, requests, speed or activity.",
+      "Icon": "imgs/action-usage",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-usage",
+        "TriggerDescription": {
+          "Push": "Refresh / start dashboard",
+          "Rotate": "Change metric"
+        }
+      }
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.platforms",
+      "Name": "Platforms",
+      "Tooltip": "Shows how many Hermes connections (Discord, Telegram, API...) are up.",
+      "Icon": "imgs/action-platforms",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-platforms",
+        "TriggerDescription": {
+          "Push": "Refresh"
+        }
+      }
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.open",
+      "Name": "Open",
+      "Tooltip": "Opens the Hermes WebUI, the dashboard, the latest Ask reply, or a web address.",
+      "Icon": "imgs/action-open",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-open",
+        "TriggerDescription": {
+          "Push": "Open"
+        }
+      }
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.agent",
+      "Name": "Agent",
+      "Tooltip": "Switches which Hermes agent the keys talk to (Morpheus, The Chef...).",
+      "Icon": "imgs/action-agent",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-agent",
+        "TriggerDescription": {
+          "Push": "Next agent"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    },
+    {
+      "UUID": "com.wingedkeys.hermes.session",
+      "Name": "New chat",
+      "Tooltip": "Starts a fresh conversation for the current agent.",
+      "Icon": "imgs/action-session",
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": false,
+      "UserTitleEnabled": false,
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "Controllers": [
+        "Keypad",
+        "Encoder"
+      ],
+      "Encoder": {
+        "layout": "$A1",
+        "Icon": "imgs/action-session",
+        "TriggerDescription": {
+          "Push": "New chat"
+        }
+      },
+      "States": [
+        {
+          "Image": "imgs/key",
+          "TitleAlignment": "bottom",
+          "FontSize": 9
+        }
+      ]
+    }
+  ]
+}
