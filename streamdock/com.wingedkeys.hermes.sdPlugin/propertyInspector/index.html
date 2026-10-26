@@ -48,6 +48,14 @@
   <div class="note">Making a key also puts it in the API key box here, so the plugin and Hermes match. The key is shown in plain text above: don't do this while streaming or sharing your screen.</div>
 </details>
 
+<h4>Optional features (off by default)</h4>
+<label class="row"><input type="checkbox" id="allowReadKey"> Read key from Hermes</label>
+<div class="note">Adds a button that, when you click it and confirm, opens your Hermes <code>.env</code> files on this PC and copies only their <code>API_SERVER_KEY</code> lines into these settings. Named agents (not "default") get their keys this way.</div>
+<label class="row"><input type="checkbox" id="allowClipboard"> Ask with clipboard</label>
+<div class="note">Lets Ask keys that have "Add the clipboard text" ticked read your clipboard when you press them, and send it to Hermes with the prompt. On Windows the clipboard is read with PowerShell (<code>Get-Clipboard</code>), because Stream Dock has no clipboard feature for plugins. While this is off, those keys show "clipboard off" and send nothing.</div>
+<div class="note">SECURITY.md (in the project on GitHub) lists exactly what each feature reads and when.</div>
+
+<div id="readKeyBox" class="hidden">
 <button id="btnReadKey">&#9888; Read key from Hermes</button>
 <div id="readWarn" class="warn hidden">
   <b>&#9888; Caution: this reads a secret file.</b><br>
@@ -56,6 +64,7 @@
   Only continue on your own computer.
   <br>It reads the standard location (Windows: %LOCALAPPDATA%\hermes\.env) unless you set another one under "Hermes .env location" below.
   <br><button id="btnReadYes" class="primary">Yes, read my key</button><button id="btnReadNo">Cancel</button>
+</div>
 </div>
 
 <label>Key text size (all keys)</label>
@@ -75,8 +84,10 @@
 <label>Hermes dashboard address (Usage and Platforms keys)</label>
 <input type="text" id="dashboardUrl" placeholder="http://127.0.0.1:9119">
 <label class="row"><input type="checkbox" id="autoStartDashboard"> Pressing a Usage key starts the dashboard if it is off</label>
+<div id="envPathBox" class="hidden">
 <label>Hermes .env location (optional, for "Read key")</label>
 <input type="text" id="envPath" placeholder="default: %LOCALAPPDATA%\hermes\.env">
+</div>
 <label>hermes.exe location (optional)</label>
 <input type="text" id="hermesExe" placeholder="default: %LOCALAPPDATA%\hermes\bin\hermes.exe">
 <div class="note">Your API key is never sent to the dashboard.</div>
@@ -133,7 +144,7 @@
 
 <div id="agentBox" class="hidden">
   <h4>This Agent key</h4>
-  <div class="note">Press to switch between your Hermes agents. Ask, Stop, Status and New chat follow the chosen agent.<br><br>Hermes requires each named agent (not "default") to have its own <code>API_SERVER_KEY</code> in <code>profiles\&lt;agent&gt;\.env</code>. Add one per agent, restart Hermes, then use <b>Read key from Hermes</b> above.</div>
+  <div class="note">Press to switch between your Hermes agents. Ask, Stop, Status and New chat follow the chosen agent.<br><br>Hermes requires each named agent (not "default") to have its own <code>API_SERVER_KEY</code> in <code>profiles\&lt;agent&gt;\.env</code>. Add one per agent, restart Hermes, then turn on <b>Read key from Hermes</b> under Optional features above and use it.</div>
 </div>
 
 <div id="approveBox" class="hidden">
@@ -158,6 +169,7 @@
   <label>Session ID (optional)</label>
   <input type="text" id="sessionId" placeholder="blank = new session each press">
   <label class="row"><input type="checkbox" id="useClipboard"> Add the clipboard text to the prompt</label>
+  <div id="clipOffNote" class="note hidden">Turn on <b>Ask with clipboard</b> under Optional features first.</div>
   <div class="note">Whatever you have copied is sent to the agent when you press the key. Don't use this with passwords or private text on the clipboard.</div>
   <label class="row"><input type="checkbox" id="continueChat"> Continue the conversation (until New chat is pressed)</label>
   <div class="note">Follow-up presses keep Hermes's memory of earlier answers. Sends go to the agent chosen on the Agent key.</div>
@@ -175,6 +187,7 @@ let globalS = {}, localS = {}, t1, t2;
 function sendMsg(o){ ws && ws.readyState === 1 && ws.send(JSON.stringify(o)); }
 function saveGlobal(){ clearTimeout(t1); t1 = setTimeout(() => {
   G.forEach(k => globalS[k] = $(k).value.trim()); globalS.allowRemote = $('allowRemote').checked; globalS.autoStartDashboard = $('autoStartDashboard').checked;
+  globalS.allowReadKey = $('allowReadKey').checked; globalS.allowClipboard = $('allowClipboard').checked; applyOptIns();
   sendMsg({ event:'setGlobalSettings', context:uuid, payload:globalS }); }, 400); }
 function saveLocal(){ clearTimeout(t2); t2 = setTimeout(() => {
   L.forEach(k => localS[k] = $(k).value); localS.useClipboard = $('useClipboard').checked; localS.continueChat = $('continueChat').checked; localS.openChat = $('openChat').checked; localS.denyMode = $('denyMode').checked; if (action === 'open') localS.label = $('openLabel').value; sendMsg({ event:'setSettings', context:uuid, payload:localS }); }, 400); }
@@ -192,7 +205,7 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
   ws.onopen = () => { sendMsg({ event:regEvent, uuid }); sendMsg({ event:'getSettings', context:uuid }); sendMsg({ event:'getGlobalSettings', context:uuid });
     if (action === 'usage') sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'profiles' } }); };
   ws.onmessage = (e) => { const m = JSON.parse(e.data);
-    if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => { if (k === 'textSize') $(k).value = globalS[k] || 'large'; else $(k).value = globalS[k] || ''; }); $('allowRemote').checked = !!globalS.allowRemote; $('autoStartDashboard').checked = globalS.autoStartDashboard !== false; }
+    if (m.event === 'didReceiveGlobalSettings') { globalS = m.payload.settings || {}; G.forEach(k => { if (k === 'textSize') $(k).value = globalS[k] || 'large'; else $(k).value = globalS[k] || ''; }); $('allowRemote').checked = !!globalS.allowRemote; $('autoStartDashboard').checked = globalS.autoStartDashboard !== false; $('allowReadKey').checked = globalS.allowReadKey === true; $('allowClipboard').checked = globalS.allowClipboard === true; applyOptIns(); }
     if (m.event === 'sendToPropertyInspector' && m.payload && Array.isArray(m.payload.profiles)) {
       const sel = $('agent'), keep = localS.agent || 'all';
       while (sel.options.length > 1) sel.remove(1);
@@ -206,6 +219,13 @@ function connectElgatoStreamDeckSocket(port, inUuid, regEvent, app, info){
       if (foundAddr) $('btnUseAddr').textContent = 'Use this address: ' + foundAddr;
       sendMsg({ event:'getGlobalSettings', context:uuid }); }
     if (m.event === 'didReceiveSettings') { localS = m.payload.settings || {}; L.forEach(k => { if (localS[k] || !['metric','days','target','agent'].includes(k)) $(k).value = localS[k] || ''; }); $('useClipboard').checked = localS.useClipboard === true; $('continueChat').checked = localS.continueChat === true; $('openChat').checked = localS.openChat === true; $('denyMode').checked = localS.denyMode === true; $('openLabel').value = action === 'open' ? (localS.label || '') : ''; } };
+}
+// Opt-in features: the Read key button and the clipboard option only work once ticked under Optional features.
+function applyOptIns(){
+  const rk = globalS.allowReadKey === true, cl = globalS.allowClipboard === true;
+  $('readKeyBox').className = rk ? '' : 'hidden'; $('envPathBox').className = rk ? '' : 'hidden';
+  if (!rk) $('readWarn').className = 'warn hidden';
+  $('useClipboard').disabled = !cl; $('clipOffNote').className = cl ? 'note hidden' : 'note';
 }
 function showResult(text, ok){ const r = $('setupResult'); r.textContent = text; r.className = 'result ' + (ok ? 'ok' : 'bad'); }
 function cmd(c){ showResult('Working...', true); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:c } }); }
@@ -224,7 +244,7 @@ $('btnMake').onclick = () => {
   $('apiKey').value = key; saveGlobal();
 };
 $('btnCopy').onclick = () => { const a = $('envLines'); if (!a.value) return; a.select(); try { document.execCommand('copy'); showResult('Copied. Paste into your Hermes .env, then restart the gateway.', true); } catch(e) { showResult('Select the text and press Ctrl+C.', false); } };
-G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('autoStartDashboard').addEventListener('change', saveGlobal); $('textSize').addEventListener('change', saveGlobal);
+G.forEach(k => $(k).addEventListener('input', saveGlobal)); $('allowRemote').addEventListener('change', saveGlobal); $('autoStartDashboard').addEventListener('change', saveGlobal); $('allowReadKey').addEventListener('change', saveGlobal); $('allowClipboard').addEventListener('change', saveGlobal); $('textSize').addEventListener('change', saveGlobal);
 L.forEach(k => { $(k).addEventListener('input', saveLocal); $(k).addEventListener('change', saveLocal); }); $('useClipboard').addEventListener('change', saveLocal); $('continueChat').addEventListener('change', saveLocal); $('openChat').addEventListener('change', saveLocal); $('denyMode').addEventListener('change', saveLocal); $('openLabel').addEventListener('input', saveLocal);
 </script>
 </body>

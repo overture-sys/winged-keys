@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.0 beta (unreleased)
+- **Read key from Hermes** and **Ask with clipboard** are now opt-in, off by default. Turn them on under the new **Optional features** section in the settings panel. While off, the Read key button is hidden and refused, and an Ask key set to use the clipboard shows *clipboard off* and sends nothing. If you used either before, tick it once after updating.
+- New `SECURITY.md`: exactly what the plugin reads, when, where data goes, and which programs it starts.
+- Clipboard reading still uses PowerShell on Windows: neither the Stream Dock nor the Stream Deck plugin API offers a clipboard read.
+
 ## 0.12.0 beta (unreleased)
 - **Model** key: switch which model Hermes uses for Ask keys. Press to step through Hermes's own default and the models you list in the settings panel (`model` or `provider:model`); turning a dial steps both ways. Each Ask run sends the chosen `model` (and `provider`) to Hermes; Hermes's default model is not changed.
 - Ask reply files name the provider and model that actually answered.

@@ -11,7 +11,10 @@ const { spawn, execFile } = require('child_process');
 const args = {};
 for (let i = 2; i + 1 < process.argv.length; i += 2) args[process.argv[i].replace(/^-+/, '')] = process.argv[i + 1];
 
-const DEFAULTS = { webuiUrl: 'http://127.0.0.1:8787', baseUrl: 'http://127.0.0.1:8642', apiKey: '', allowRemote: false, replyDir: '', dashboardUrl: 'http://127.0.0.1:9119', hermesExe: '', autoStartDashboard: true };
+const DEFAULTS = { webuiUrl: 'http://127.0.0.1:8787', baseUrl: 'http://127.0.0.1:8642', apiKey: '', allowRemote: false, replyDir: '', dashboardUrl: 'http://127.0.0.1:9119', hermesExe: '', autoStartDashboard: true, allowReadKey: false, allowClipboard: false };
+// Opt-in features (off until the user ticks them in the settings panel): reading the key from the
+// Hermes .env files, and adding the clipboard to Ask prompts. See SECURITY.md.
+const optedIn = (name) => global[name] === true || global[name] === 'true';
 let global = { ...DEFAULTS };
 const ctx = new Map();      // context -> { action, settings }
 const runs = new Map();     // context -> { runId }
@@ -400,7 +403,9 @@ function freshSettings(context) {
     setTimeout(() => { if (pending.delete(context)) resolve(); }, 1500);
   });
 }
-// Clipboard: fixed OS commands only. WINGEDKEYS_TEST_CLIPBOARD is used by the automated tests.
+// Clipboard: fixed OS commands only, and only after the user turned on "Ask with clipboard".
+// Neither the Stream Dock nor the Stream Deck plugin API has a clipboard read, so Windows uses PowerShell's Get-Clipboard.
+// WINGEDKEYS_TEST_CLIPBOARD is used by the automated tests.
 const CLIP_MAX = 20000;
 function readClipboard() {
   if (process.env.WINGEDKEYS_TEST_CLIPBOARD !== undefined) return Promise.resolve(process.env.WINGEDKEYS_TEST_CLIPBOARD);
@@ -431,6 +436,7 @@ async function askClaimed(context, rec, release) {
   const timeoutMs = Math.min(3600, Math.max(10, Number(c.settings.timeoutSec) || 300)) * 1000;
   let input = prompt;
   if (c.settings.useClipboard === true || c.settings.useClipboard === 'true') {
+    if (!optedIn('allowClipboard')) { release(); show(context, COLORS.amber, 'clipboard\noff'); send({ event: 'showAlert', context }); return setTimeout(() => initKey(context), 2500); }
     const clip = (await readClipboard()).trim();
     if (!clip) { release(); show(context, COLORS.amber, 'clipboard\nempty'); send({ event: 'showAlert', context }); return setTimeout(() => initKey(context), 2500); }
     input = prompt + '\n\n---\n' + clip.slice(0, CLIP_MAX);
@@ -701,7 +707,7 @@ async function testConnection() {
     if (!h.ok) lines.push('NO  Hermes API answered with error ' + h.status + '.');
     else {
       lines.push('OK  Hermes API is running at ' + baseUrl() + '.');
-      if (!global.apiKey) lines.push('NO  No API key set. Paste it, make one, or read it from Hermes.');
+      if (!global.apiKey) lines.push('NO  No API key set. Paste it or make one.');
       else {
         const m = await api('/v1/models', { agent: '' });
         lines.push(m.status === 401 || m.status === 403 ? 'NO  The API key does not match API_SERVER_KEY in your Hermes .env.' : m.ok ? 'OK  API key accepted.' : 'NO  Key check failed (error ' + m.status + ').');
@@ -710,7 +716,7 @@ async function testConnection() {
           const am = await api('/v1/models');
           lines.push(am.ok ? 'OK  Agent "' + a + '" accepted its key.'
             : am.status === 404 ? 'NO  Hermes does not serve an agent named "' + a + '".'
-            : am.status === 401 || am.status === 403 ? 'NO  Agent "' + a + '" needs its own API_SERVER_KEY in profiles\\' + a + '\\.env (Hermes does not reuse the main key for named agents). Then use Read key from Hermes.'
+            : am.status === 401 || am.status === 403 ? 'NO  Agent "' + a + '" needs its own API_SERVER_KEY in profiles\\' + a + '\\.env (Hermes does not reuse the main key for named agents). Then turn on Read key from Hermes under Optional features and use it.'
             : 'NO  Agent "' + a + '" check failed (error ' + am.status + ').');
         }
         if (activeModel()) lines.push('--  Ask keys ask Hermes for model "' + activeModel() + '". Each reply file names the model that answered.');
@@ -747,6 +753,7 @@ function readEnvKey(file) {
   return key.length >= 16 ? key : '';
 }
 async function readKeyFromHermes() {
+  if (!optedIn('allowReadKey')) return { ok: false, text: 'Read key from Hermes is off. Turn it on under Optional features first.' };
   // The file location comes only from the user's own setting or the standard Hermes location,
   // never from the dashboard (a fake dashboard could otherwise choose which file is read).
   let envPath = global.envPath ? String(global.envPath) : defaultEnvPath();

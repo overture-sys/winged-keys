@@ -133,8 +133,12 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  dashBody.gateway_platforms['morpheus:discord'].state='reconnecting';
  send({event:'keyDown',action:'com.wingedkeys.hermes.platforms',context:'P1',payload:{}});await sleep(700);
  check('platforms 3/4 red names discord',decodeURIComponent(last('setImage','P1').payload.image).includes('data-value=\"3/4\"')&&/discord/.test(lbl('P1')));
- // clipboard ask
+ // clipboard ask: opt-in, off by default
  runState={n:0,stopped:false};stored.A={prompt:'Summarize this',label:'Clip',timeoutSec:30,useClipboard:true};
+ send({event:'keyDown',action:'com.wingedkeys.hermes.ask',context:'A',payload:{}});await sleep(800);
+ check('clipboard off by default: key says so and nothing is sent',/clipboard\noff/.test(lbl('A'))&&!runState.body&&!!last('showAlert','A'));
+ send({event:'didReceiveGlobalSettings',payload:{settings:{...g2,allowClipboard:true}}});await sleep(2000);
+ runState={n:0,stopped:false};
  send({event:'keyDown',action:'com.wingedkeys.hermes.ask',context:'A',payload:{}});await sleep(5500);
  check('clipboard appended to prompt',runState.body&&runState.body.input==='Summarize this\n\n---\nVENDOR EMAIL TEXT');
  // approval waiting
@@ -178,6 +182,11 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  check('test says no key',t1&&!t1.payload.ok&&/No API key/.test(t1.payload.text));
  msgs.length=0;
  send({event:'sendToPlugin',action:'com.wingedkeys.hermes.status',context:'S',payload:{cmd:'readKey'}});await sleep(500);
+ const rkOff=last('sendToPropertyInspector');
+ check('read key off by default: refused, nothing saved',rkOff&&!rkOff.payload.ok&&/is off/.test(rkOff.payload.text)&&!msgs.some(m=>m.event==='setGlobalSettings'));
+ send({event:'didReceiveGlobalSettings',payload:{settings:{dashboardUrl:'http://127.0.0.1:'+dp,baseUrl:'http://127.0.0.1:'+hp,envPath:envFile,allowReadKey:true}}});await sleep(300);
+ msgs.length=0;
+ send({event:'sendToPlugin',action:'com.wingedkeys.hermes.status',context:'S',payload:{cmd:'readKey'}});await sleep(500);
  const rk=last('sendToPropertyInspector');
  check('read key ok',rk&&rk.payload.ok&&rk.payload.text.includes(envFile));
  check('read key saves only the API key',msgs.some(m=>m.event==='setGlobalSettings'&&m.payload.apiKey==='KEY')&&!JSON.stringify(msgs).includes('nope'));
@@ -188,14 +197,14 @@ const last=(ev,c)=>msgs.filter(m=>m.event===ev&&(!c||m.context===c)).pop();
  check('test all OK after read',t2&&t2.payload.ok&&/API key accepted/.test(t2.payload.text));
  // API off explanation
  dashBody={gateway_running:true,gateway_platforms:{}};
- send({event:'didReceiveGlobalSettings',payload:{settings:{dashboardUrl:'http://127.0.0.1:'+dp,baseUrl:'http://127.0.0.1:1',apiKey:'KEY',envPath:envFile}}});await sleep(900);
+ send({event:'didReceiveGlobalSettings',payload:{settings:{dashboardUrl:'http://127.0.0.1:'+dp,baseUrl:'http://127.0.0.1:1',apiKey:'KEY',envPath:envFile,allowReadKey:true}}});await sleep(900);
  check('status explains API off',/API off/.test(lbl('S')));
  fs.writeFileSync(envFile,'API_SERVER_ENABLED=false\n');
  send({event:'sendToPlugin',action:'com.wingedkeys.hermes.status',context:'S',payload:{cmd:'readKey'}});await sleep(500);
  check('read key missing explained',/No API_SERVER_KEY/.test(last('sendToPropertyInspector').payload.text));
  // ---- security review regressions
  // network .env path refused
- send({event:'didReceiveGlobalSettings',payload:{settings:{...good,envPath:'\\\\evil\\share\\.env'}}});await sleep(200);
+ send({event:'didReceiveGlobalSettings',payload:{settings:{...good,envPath:'\\\\evil\\share\\.env',allowReadKey:true}}});await sleep(200);
  send({event:'sendToPlugin',action:'com.wingedkeys.hermes.status',context:'S',payload:{cmd:'readKey'}});await sleep(400);
  check('network .env path refused',/network paths are not allowed/.test(last('sendToPropertyInspector').payload.text));
  // Find Hermes refuses a listener that isn't Hermes

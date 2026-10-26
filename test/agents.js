@@ -52,7 +52,7 @@ const press = (k, ctxId) => send({ event: 'keyDown', action: P + k, context: ctx
   const plugin = (process.env.PLUGIN || 'streamdock/com.wingedkeys.hermes.sdPlugin') + '/plugin/index.js';
   const child = spawn('node', [plugin, '-port', sd.address().port, '-pluginUUID', 'UU', '-registerEvent', 'registerPlugin', '-info', '{}'], { env: { ...process.env, HOME: home, USERPROFILE: home, WINGEDKEYS_TEST_CLIPBOARD: '' } });
   await sleep(400);
-  global = { baseUrl: 'http://127.0.0.1:' + hermes.address().port, dashboardUrl: 'http://127.0.0.1:' + dash.address().port, envPath: path.join(hh, '.env'), replyDir: path.join(home, 'r') };
+  global = { baseUrl: 'http://127.0.0.1:' + hermes.address().port, dashboardUrl: 'http://127.0.0.1:' + dash.address().port, envPath: path.join(hh, '.env'), allowReadKey: true, replyDir: path.join(home, 'r') };
   send({ event: 'didReceiveGlobalSettings', payload: { settings: global } });
   await sleep(200);
 

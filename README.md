@@ -21,7 +21,7 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 | Key | What it shows / does |
 |---|---|
 | **Status** | Green: Hermes is up and your API key works. Amber: no key, bad key, or a non-local address. Red: Hermes is off. |
-| **Ask** | Sends the key's preset prompt to Hermes as a run, waits, and saves the reply as a Markdown file. Optional: add your clipboard text to the prompt. Shows *needs OK* when the agent is waiting for your approval (approve it with an **Approve** key, or in your Hermes app or WebUI). |
+| **Ask** | Sends the key's preset prompt to Hermes as a run, waits, and saves the reply as a Markdown file. Optional: add your clipboard text to the prompt (turn on **Ask with clipboard** under **Optional features** first). Shows *needs OK* when the agent is waiting for your approval (approve it with an **Approve** key, or in your Hermes app or WebUI). |
 | **Approve** | When an Ask run is waiting for your OK, shows what the agent wants to run (for example `rm -rf build`). Press to approve it **once**. Can be set to **Deny** instead. A press right after a new request appears only shows it, so nothing is approved unseen. |
 | **Stop** | Stops Ask runs in progress. |
 | **Usage** | One number per key: cache hit %, tokens, sessions or model calls (all chats, all agents added up or one agent; today, 7 or 30 days), or API-server tokens, requests, p95 response time, agents running. Pressing it while the dashboard is off starts the dashboard. |
@@ -53,7 +53,7 @@ Then drag keys from the **Winged Keys** category and click one. In the settings 
 
 1. **Find Hermes** looks up the Hermes address from the dashboard (needs the dashboard running). Check it and click **Use this address**.
 2. If the API server isn't on yet, open **First-time setup**: click **Make a key**, copy the two lines into your Hermes `.env`, and restart the Hermes gateway.
-3. If your `.env` already has a key, you can click **⚠ Read key from Hermes** instead of pasting it (see Security).
+3. If your `.env` already has a key, you can tick **Read key from Hermes** under **Optional features** and click **⚠ Read key from Hermes** instead of pasting it (see [SECURITY.md](SECURITY.md)).
 4. **Test connection** tells you in plain words what is working and what isn't.
 
 ## Using several agents
@@ -62,7 +62,7 @@ Hermes serves every agent (profile) on the same port, and each named agent check
 
 1. Add an `API_SERVER_KEY=...` line to that agent's `.env` (Windows: `%LOCALAPPDATA%\hermes\profiles\<agent>\.env`). It can be the same value as your main key or a different one.
 2. Restart the Hermes gateway.
-3. In the settings panel, click **⚠ Read key from Hermes**. It picks up the main key and each agent's key, and tells you which agents still need one.
+3. In the settings panel, tick **Read key from Hermes** under **Optional features**, then click **⚠ Read key from Hermes**. It picks up the main key and each agent's key, and tells you which agents still need one.
 
 ## Switching models
 
@@ -80,13 +80,16 @@ Notes:
 
 ## Security
 
+The full list of what the plugin reads, when, and where data goes is in [SECURITY.md](SECURITY.md). In short:
+
 - The Hermes API server gives the agent **full tool access, including terminal commands**. Keep it on `127.0.0.1`. Do not expose it to the internet.
 - The plugin only talks to local addresses unless you tick "Allow a non-local address", and then only over https. It never follows redirects.
 - Your API key is typed into the settings panel and stored by the Stream Dock / Stream Deck app. It may be stored unencrypted. It is never written to logs, shown on a key, or sent to the dashboard. It is sent only to the Hermes address in your settings; **Find Hermes** only proposes an address (taken from the dashboard and checked to answer like Hermes); it is saved only when you click **Use this address**.
 - **Make a key** shows the new key in plain text. Don't use it while streaming or sharing your screen.
 - Usage keys read the dashboard's session token from the dashboard page the same way your browser does, keep it in memory only, and never display it.
+- **Read key from Hermes** and **Ask with clipboard** are **off by default**. Turn them on under **Optional features** in the settings panel.
 - **Read key from Hermes** opens your Hermes `.env` (the standard location, or one you set) and copies only the `API_SERVER_KEY` line into the plugin's settings. It runs only when you click it and confirm a warning. Network paths are refused. Use it only on your own computer.
-- Clipboard Ask sends whatever you have copied to the agent. Don't use it with passwords on the clipboard.
+- Clipboard Ask sends whatever you have copied to the agent. Neither Stream Dock nor Stream Deck lets plugins read the clipboard, so on Windows the plugin reads it with PowerShell (`Get-Clipboard`). Don't use it with passwords on the clipboard.
 - The plugin never approves agent actions for you. The **Approve** key answers only when you press it, only for the exact request it has been showing for at least 1.5 seconds (checked with Hermes again just before answering), only for runs started from your own Ask keys, and only with *once* or *deny*, never *always*. The command preview comes from Hermes, which removes secrets from it first; it is not written to the log.
 - The plugin starts programs only with fixed arguments and never through a shell: hermes.exe with `dashboard --no-open --port <port>` (the hermes.exe path is the standard one or the full path you set), the OS clipboard reader, and the OS "open file" command for its own reply files.
 
