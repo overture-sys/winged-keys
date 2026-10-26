@@ -39,7 +39,7 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
   API_SERVER_KEY=<a long random value you make yourself>
   ```
   Then restart the Hermes gateway. Default address: `http://127.0.0.1:8642`.
-- The **Hermes dashboard** for Usage and Platforms keys (`hermes dashboard`, default `http://127.0.0.1:9119`). The plugin can start it for you.
+- The **Hermes dashboard** for Usage and Platforms keys (`hermes dashboard`, default `http://127.0.0.1:9119`). The plugin can start it for you if you turn on **Start the dashboard from Usage keys**.
 - Developed against Hermes 0.22.1. Older versions may differ.
 - Windows 10+ (macOS untested).
 
