@@ -4,7 +4,7 @@ Winged Keys is a Stream Dock / Stream Deck plugin that talks to Hermes Agent run
 
 ## Reporting a problem
 
-Please report security problems privately through [GitHub's private vulnerability reporting](https://github.com/overture-sys/winged-keys/security/advisories/new) for this repository, not in a public issue.
+Please report security problems privately, not in a public issue. On [GitLab](https://gitlab.com/overture-group1/Overture-project/-/issues/new), open a new issue and tick **This issue is confidential** before submitting, so only you and the maintainer can see it. You can also send a private message to the developer on [Ko-fi](https://ko-fi.com/overturesys).
 
 ## Where data goes
 

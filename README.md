@@ -16,6 +16,8 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 
 > Community project. Not made by, affiliated with, or endorsed by Nous Research, Mirabox or Elgato.
 
+**Where to get it:** the code lives on GitLab at [gitlab.com/overture-group1/Overture-project](https://gitlab.com/overture-group1/Overture-project) (the GitHub copy is temporarily unavailable). Ready-to-install builds are on Ko-fi, pay what you want: [ko-fi.com/s/f9fabd5616](https://ko-fi.com/s/f9fabd5616).
+
 ## Keys
 
 | Key | What it shows / does |
@@ -44,6 +46,8 @@ Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pr
 - Windows 10+ (macOS untested).
 
 ## Install
+
+The easiest way is the packaged build from [Ko-fi](https://ko-fi.com/s/f9fabd5616). To install from this repository instead:
 
 **Stream Dock:** copy `streamdock/com.wingedkeys.hermes.sdPlugin` into `%APPDATA%\HotSpot\StreamDock\plugins\` and restart the Stream Dock app.
 
@@ -127,13 +131,13 @@ The Elgato build uses the same code and Elgato's manifest format and image sizes
 
 ## Credits
 
-Built by [overture-sys](https://github.com/overture-sys) with Claude (Anthropic).
+Built by [overture-sys](https://gitlab.com/overture-group1) with Claude (Anthropic).
 
 Key lettering uses [Cinzel](https://github.com/NDISCOVER/Cinzel) by Natanael Gama, licensed under the SIL Open Font License 1.1 (`Cinzel-OFL.txt` in each plugin folder).
 
 ## Support
 
-If Winged Keys is useful to you, you can support its development on [Ko-fi](https://ko-fi.com/overturesys). ♥
+If Winged Keys is useful to you, you can support its development on [Ko-fi](https://ko-fi.com/overturesys), or pay what you want for the packaged build at [ko-fi.com/s/f9fabd5616](https://ko-fi.com/s/f9fabd5616). ♥
 
 ## License
 
