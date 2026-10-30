@@ -1,16 +1,20 @@
 # Changelog
 
-## 0.13.0 beta (unreleased)
+## Unreleased
+- The source code now lives on GitLab at https://gitlab.com/overture-group1/Overture-project while the GitHub copy is unavailable. README and SECURITY.md point there; security problems can be reported in a confidential GitLab issue or a private Ko-fi message. No plugin changes.
+
+## 0.13.0 beta (2026-10-26)
+Public beta, pay what you want on Ko-fi: https://ko-fi.com/s/f9fabd5616. Includes the 0.11.0 and 0.12.0 changes below.
 - **Read key from Hermes**, **Ask with clipboard** and **Start the dashboard from Usage keys** are now opt-in, off by default. Turn them on under the new **Optional features** section in the settings panel. While off, the Read key button is hidden and refused, and an Ask key set to use the clipboard shows *clipboard off* and sends nothing, and Usage and Platforms keys show *dashboard off* instead of starting the dashboard. The old "starts the dashboard" setting (on by default) is replaced and ignored. If you used any of these before, tick it once after updating.
 - New `SECURITY.md`: exactly what the plugin reads, when, where data goes, and which programs it starts.
 - Clipboard reading still uses PowerShell on Windows: neither the Stream Dock nor the Stream Deck plugin API offers a clipboard read.
 
-## 0.12.0 beta (unreleased)
+## 0.12.0 beta (2026-10-25, not released on its own; shipped in 0.13.0)
 - **Model** key: switch which model Hermes uses for Ask keys. Press to step through Hermes's own default and the models you list in the settings panel (`model` or `provider:model`); turning a dial steps both ways. Each Ask run sends the chosen `model` (and `provider`) to Hermes; Hermes's default model is not changed.
 - Ask reply files name the provider and model that actually answered.
 - Test connection names the chosen model.
 
-## 0.11.0 beta (unreleased)
+## 0.11.0 beta (2026-10-25, not released on its own; shipped in 0.13.0)
 - **Approve** key: shows the approval request an Ask run is waiting on (the command, or what the agent wants to do) and approves it **once** when you press it. Never answers on its own, never chooses "session" or "always", and ignores a press in the first 1.5 seconds after a new request appears. Can be set to **Deny** instead.
 - Uses Hermes's `POST /v1/runs/{id}/approval` with the exact request id (and execution generation on current Hermes).
 
