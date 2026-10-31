@@ -3,6 +3,13 @@
 ## Unreleased
 - The source code now lives on GitLab at https://gitlab.com/overture-group1/Overture-project while the GitHub copy is unavailable. README and SECURITY.md point there; security problems can be reported in a confidential GitLab issue or a private Ko-fi message. No plugin changes.
 
+## 0.13.1 beta (Elgato Marketplace build, 2026-10-31)
+Elgato Stream Deck build only; the Stream Dock build is unchanged at 0.13.0. Changes to meet Elgato's Marketplace plugin guidelines:
+- The settings panel no longer has the "Support on Ko-fi" link (Marketplace does not allow donation links there). It has a **Setup help** link to the README instead.
+- The Approve and Model icons in the Stream Deck actions list are now white like the others (the guidelines ask for white, single-colour list icons).
+- The settings panel says "Stream Deck" instead of "Stream Dock", and points to SECURITY.md on GitLab.
+- The manifest lists Windows only, since the plugin has only been tested on Windows. macOS can come back once it is tested.
+
 ## 0.13.0 beta (2026-10-26)
 Public beta, pay what you want on Ko-fi: https://ko-fi.com/s/f9fabd5616. Includes the 0.11.0 and 0.12.0 changes below.
 - **Read key from Hermes**, **Ask with clipboard** and **Start the dashboard from Usage keys** are now opt-in, off by default. Turn them on under the new **Optional features** section in the settings panel. While off, the Read key button is hidden and refused, and an Ask key set to use the clipboard shows *clipboard off* and sends nothing, and Usage and Platforms keys show *dashboard off* instead of starting the dashboard. The old "starts the dashboard" setting (on by default) is replaced and ignored. If you used any of these before, tick it once after updating.

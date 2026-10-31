@@ -692,6 +692,7 @@ async function detect() {
 // Saves the address Find Hermes proposed, only after the user clicks to confirm it.
 let detectedCandidate = '';
 const SUPPORT_URL = 'https://ko-fi.com/overturesys';
+const HELP_URL = 'https://gitlab.com/overture-group1/Overture-project#readme';
 async function useDetected(address) {
   if (!detectedCandidate || address !== detectedCandidate || !isLocal(address)) return { ok: false, text: 'Click Find Hermes again first.' };
   setGlobal({ baseUrl: detectedCandidate });
@@ -798,6 +799,7 @@ async function onSetupCommand(m) {
     else if (cmd === 'readKey') r = await readKeyFromHermes();
     else if (cmd === 'profiles') { reply(m, { cmd, profiles: await listProfiles() }); return; }
     else if (cmd === 'support') { send({ event: 'openUrl', payload: { url: SUPPORT_URL } }); return; }
+    else if (cmd === 'help') { send({ event: 'openUrl', payload: { url: HELP_URL } }); return; }
     else if (cmd === 'useAddress') r = await useDetected(String((m.payload && m.payload.address) || ''));
     else return;
   } catch (e) {

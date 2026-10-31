@@ -52,17 +52,17 @@
 <label class="row"><input type="checkbox" id="allowReadKey"> Read key from Hermes</label>
 <div class="note">Adds a button that, when you click it and confirm, opens your Hermes <code>.env</code> files on this PC and copies only their <code>API_SERVER_KEY</code> lines into these settings. Named agents (not "default") get their keys this way.</div>
 <label class="row"><input type="checkbox" id="allowClipboard"> Ask with clipboard</label>
-<div class="note">Lets Ask keys that have "Add the clipboard text" ticked read your clipboard when you press them, and send it to Hermes with the prompt. On Windows the clipboard is read with PowerShell (<code>Get-Clipboard</code>), because Stream Dock has no clipboard feature for plugins. While this is off, those keys show "clipboard off" and send nothing.</div>
+<div class="note">Lets Ask keys that have "Add the clipboard text" ticked read your clipboard when you press them, and send it to Hermes with the prompt. On Windows the clipboard is read with PowerShell (<code>Get-Clipboard</code>), because Stream Deck has no clipboard feature for plugins. While this is off, those keys show "clipboard off" and send nothing.</div>
 <label class="row"><input type="checkbox" id="allowStartDashboard"> Start the dashboard from Usage keys</label>
 <div class="note">Pressing a Usage or Platforms key while the Hermes dashboard is off starts it (<code>hermes.exe dashboard</code>, using the hermes.exe location below). While this is off, those keys show "dashboard off" and start nothing.</div>
-<div class="note">SECURITY.md (in the project on GitHub) lists exactly what each feature reads and when.</div>
+<div class="note">SECURITY.md (in the project on GitLab) lists exactly what each feature reads and when.</div>
 
 <div id="readKeyBox" class="hidden">
 <button id="btnReadKey">&#9888; Read key from Hermes</button>
 <div id="readWarn" class="warn hidden">
   <b>&#9888; Caution: this reads a secret file.</b><br>
   The plugin will open your Hermes <code>.env</code> file on this computer and copy only the <code>API_SERVER_KEY</code> line into this plugin's settings.
-  That key gives full control of your agent, including running commands on this PC. Stream Dock / Stream Deck may store it unencrypted.
+  That key gives full control of your agent, including running commands on this PC. Stream Deck may store it unencrypted.
   Only continue on your own computer.
   <br>It reads the standard location (Windows: %LOCALAPPDATA%\hermes\.env) unless you set another one under "Hermes .env location" below.
   <br><button id="btnReadYes" class="primary">Yes, read my key</button><button id="btnReadNo">Cancel</button>
@@ -80,7 +80,7 @@
 <input type="text" id="baseUrl" placeholder="http://127.0.0.1:8642">
 <label>API key</label>
 <input type="password" id="apiKey" autocomplete="off" placeholder="API_SERVER_KEY from the Hermes .env">
-<div class="note">Treat the key like a password. It gives the agent full tool access. It may be stored unencrypted by Stream Dock.</div>
+<div class="note">Treat the key like a password. It gives the agent full tool access. It may be stored unencrypted by Stream Deck.</div>
 <label>Hermes WebUI address (Open keys)</label>
 <input type="text" id="webuiUrl" placeholder="http://127.0.0.1:8787">
 <label>Hermes dashboard address (Usage and Platforms keys)</label>
@@ -178,7 +178,7 @@
   <input type="number" id="timeoutSec" min="10" placeholder="300">
 </div>
 <div style="margin-top:18px;padding-top:8px;border-top:1px solid #2e2a22;font-size:11px;color:#b9ab8d">
-  Winged Keys (beta) by overture-sys &middot; <a href="#" id="lnkSupport" style="color:#d4af37">&hearts; Support on Ko-fi</a>
+  Winged Keys (beta) &middot; <a href="#" id="lnkHelp" style="color:#d4af37">Setup help</a>
 </div>
 <script>
 let ws, uuid, action = '', actionFull = '';
@@ -231,7 +231,7 @@ function applyOptIns(){
 function showResult(text, ok){ const r = $('setupResult'); r.textContent = text; r.className = 'result ' + (ok ? 'ok' : 'bad'); }
 function cmd(c){ showResult('Working...', true); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:c } }); }
 let foundAddr = '';
-$('lnkSupport').onclick = (e) => { e.preventDefault(); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'support' } }); };
+$('lnkHelp').onclick = (e) => { e.preventDefault(); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'help' } }); };
 $('btnDetect').onclick = () => cmd('detect');
 $('btnUseAddr').onclick = () => { $('btnUseAddr').className = 'hidden'; showResult('Working...', true); sendMsg({ event:'sendToPlugin', action:actionFull, context:uuid, payload:{ cmd:'useAddress', address:foundAddr } }); };
 $('btnTest').onclick = () => cmd('test');
