@@ -10,7 +10,7 @@ Stream Deck–style keys for a self-hosted [Hermes Agent](https://hermes-agent.n
 
 Builds for:
 - **Mirabox Stream Dock** (tested on a Stream Dock M18, Windows, app 3.10.205)
-- **Elgato Stream Deck** (experimental: simulated tests only; see "Elgato status")
+- **Elgato Stream Deck** (tested on a Stream Deck Mini, Windows; dials simulated only; see "Elgato status")
 
 Supported controls: keys on every model, the touch strip on Stream Dock N4/N4 Pro, knobs on Stream Dock N3/N4 and dials on Elgato Stream Deck+ (press = same as the key; turning a **Usage** dial changes what it shows).
 
@@ -127,7 +127,9 @@ PLUGIN=elgato/com.overturesys.wingedkeys.sdPlugin node test/models.js
 
 ## Elgato status
 
-The Elgato build uses the same code and Elgato's manifest format and image sizes. It passes the same simulated tests. It is **not** yet tested on real Stream Deck hardware. Publishing on the Elgato Marketplace requires packaging with Elgato's CLI, which enables DRM and requires their official `@elgato/streamdeck` library. That port is still to do.
+The Elgato build uses the same code with Elgato's manifest format and image sizes, and passes the same simulated tests. It was tested on a Stream Deck Mini (Windows) on 2026-10-30. Stream Deck + dials and the touch strip are tested in simulation only.
+
+From 0.13.1 the Elgato build has its own plugin ID, `com.overturesys.wingedkeys` (the Stream Dock build keeps `com.wingedkeys.hermes`), and is being prepared for the Elgato Marketplace. It is packed with Elgato's CLI (`streamdeck validate` and `streamdeck pack` pass). It does not use Elgato's `@elgato/streamdeck` library yet, so it does not get Marketplace DRM, which Elgato offers but does not require.
 
 ## Credits
 
