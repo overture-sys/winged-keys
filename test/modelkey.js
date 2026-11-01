@@ -108,8 +108,8 @@ const latestReply = (dir) => { const f = fs.readdirSync(dir).sort().pop(); retur
 
   // manifests
   const sdm = JSON.parse(fs.readFileSync('streamdock/com.wingedkeys.hermes.sdPlugin/manifest.json'));
-  const elm = JSON.parse(fs.readFileSync('elgato/com.wingedkeys.hermes.sdPlugin/manifest.json'));
-  const sa = sdm.Actions.find((a) => a.UUID === P + 'model'), ea = elm.Actions.find((a) => a.UUID === P + 'model');
+  const elm = JSON.parse(fs.readFileSync('elgato/com.overturesys.wingedkeys.sdPlugin/manifest.json'));
+  const sa = sdm.Actions.find((a) => a.UUID === P + 'model'), ea = elm.Actions.find((a) => a.UUID === elm.UUID + '.model');
   check('Stream Dock manifest has the Model action and its icon', !!sa && fs.existsSync('streamdock/com.wingedkeys.hermes.sdPlugin/' + sa.Icon));
   check('Elgato manifest has the Model action with dial push and rotate', !!ea && ea.Encoder && ea.Encoder.TriggerDescription.Push && ea.Encoder.TriggerDescription.Rotate);
 

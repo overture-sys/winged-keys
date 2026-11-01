@@ -1,6 +1,6 @@
 {
   "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
-  "UUID": "com.wingedkeys.hermes",
+  "UUID": "com.overturesys.wingedkeys",
   "Name": "Winged Keys",
   "Author": "overture-sys",
   "Version": "0.13.1.0",
@@ -24,7 +24,7 @@
   ],
   "Actions": [
     {
-      "UUID": "com.wingedkeys.hermes.status",
+      "UUID": "com.overturesys.wingedkeys.status",
       "Name": "Status",
       "Tooltip": "Shows whether Hermes is running (green), needs a key (amber) or is off (red).",
       "Icon": "imgs/action-status",
@@ -52,7 +52,7 @@
       }
     },
     {
-      "UUID": "com.wingedkeys.hermes.ask",
+      "UUID": "com.overturesys.wingedkeys.ask",
       "Name": "Ask",
       "Tooltip": "Sends a preset prompt to Hermes and saves the reply to a file.",
       "Icon": "imgs/action-ask",
@@ -80,7 +80,7 @@
       }
     },
     {
-      "UUID": "com.wingedkeys.hermes.approve",
+      "UUID": "com.overturesys.wingedkeys.approve",
       "Name": "Approve",
       "Tooltip": "Shows the request an Ask run is waiting on and approves it once when you press it.",
       "Icon": "imgs/action-approve",
@@ -108,7 +108,7 @@
       ]
     },
     {
-      "UUID": "com.wingedkeys.hermes.stop",
+      "UUID": "com.overturesys.wingedkeys.stop",
       "Name": "Stop",
       "Tooltip": "Stops the Ask runs that are in progress.",
       "Icon": "imgs/action-stop",
@@ -136,7 +136,7 @@
       }
     },
     {
-      "UUID": "com.wingedkeys.hermes.usage",
+      "UUID": "com.overturesys.wingedkeys.usage",
       "Name": "Usage",
       "Tooltip": "Shows today's Hermes API usage: tokens, requests, speed or activity.",
       "Icon": "imgs/action-usage",
@@ -165,7 +165,7 @@
       }
     },
     {
-      "UUID": "com.wingedkeys.hermes.platforms",
+      "UUID": "com.overturesys.wingedkeys.platforms",
       "Name": "Platforms",
       "Tooltip": "Shows how many Hermes connections (Discord, Telegram, API...) are up.",
       "Icon": "imgs/action-platforms",
@@ -193,7 +193,7 @@
       }
     },
     {
-      "UUID": "com.wingedkeys.hermes.open",
+      "UUID": "com.overturesys.wingedkeys.open",
       "Name": "Open",
       "Tooltip": "Opens the Hermes WebUI, the dashboard, the latest Ask reply, or a web address.",
       "Icon": "imgs/action-open",
@@ -221,7 +221,7 @@
       }
     },
     {
-      "UUID": "com.wingedkeys.hermes.agent",
+      "UUID": "com.overturesys.wingedkeys.agent",
       "Name": "Agent",
       "Tooltip": "Switches which Hermes agent the keys talk to (Morpheus, The Chef...).",
       "Icon": "imgs/action-agent",
@@ -249,7 +249,7 @@
       ]
     },
     {
-      "UUID": "com.wingedkeys.hermes.session",
+      "UUID": "com.overturesys.wingedkeys.session",
       "Name": "New chat",
       "Tooltip": "Starts a fresh conversation for the current agent.",
       "Icon": "imgs/action-session",
@@ -277,7 +277,7 @@
       ]
     },
     {
-      "UUID": "com.wingedkeys.hermes.model",
+      "UUID": "com.overturesys.wingedkeys.model",
       "Name": "Model",
       "Tooltip": "Switches which model Hermes uses for Ask keys (Hermes's default or one you list).",
       "Icon": "imgs/action-model",

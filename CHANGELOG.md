@@ -8,6 +8,7 @@ Elgato Stream Deck build only; the Stream Dock build is unchanged at 0.13.0. Cha
 - The settings panel no longer has the "Support on Ko-fi" link (Marketplace does not allow donation links there). It has a **Setup help** link to the README instead.
 - The Approve and Model icons in the Stream Deck actions list are now white like the others (the guidelines ask for white, single-colour list icons).
 - The settings panel says "Stream Deck" instead of "Stream Dock", and points to SECURITY.md on GitLab.
+- New plugin ID `com.overturesys.wingedkeys` (was `com.wingedkeys.hermes`), because Elgato's guidelines ask for the organization name in it. Stream Deck treats it as a new plugin: remove the old Winged Keys, install this one and re-add your keys once. The Stream Dock build keeps its old ID.
 - The manifest lists Windows only, since the plugin has only been tested on Windows. macOS can come back once it is tested.
 
 ## 0.13.0 beta (2026-10-26)

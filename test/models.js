@@ -81,11 +81,11 @@ const MODELS=[
  }
  // manifests
  const sdm=JSON.parse(fs.readFileSync('streamdock/com.wingedkeys.hermes.sdPlugin/manifest.json'));
- const elm=JSON.parse(fs.readFileSync('elgato/com.wingedkeys.hermes.sdPlugin/manifest.json'));
+ const elm=JSON.parse(fs.readFileSync('elgato/com.overturesys.wingedkeys.sdPlugin/manifest.json'));
  check('Stream Dock manifest declares Keypad, Information, Knob on every action',sdm.Actions.every(a=>['Keypad','Information','Knob'].every(c=>a.Controllers.includes(c))));
  check('Elgato manifest declares Keypad and Encoder with a layout on every action',elm.Actions.every(a=>a.Controllers.includes('Encoder')&&a.Encoder&&a.Encoder.layout==='$A1'));
  check('Elgato action UUIDs are prefixed with the plugin UUID',elm.Actions.every(a=>a.UUID.startsWith(elm.UUID+'.')));
- check('Elgato image files exist (1x and @2x)',[elm.Icon,elm.CategoryIcon,...elm.Actions.flatMap(a=>[a.Icon,a.States[0].Image])].every(p=>fs.existsSync('elgato/com.wingedkeys.hermes.sdPlugin/'+p+'.png')&&fs.existsSync('elgato/com.wingedkeys.hermes.sdPlugin/'+p+'@2x.png')));
+ check('Elgato image files exist (1x and @2x)',[elm.Icon,elm.CategoryIcon,...elm.Actions.flatMap(a=>[a.Icon,a.States[0].Image])].every(p=>fs.existsSync('elgato/com.overturesys.wingedkeys.sdPlugin/'+p+'.png')&&fs.existsSync('elgato/com.overturesys.wingedkeys.sdPlugin/'+p+'@2x.png')));
  child.kill();dash.close();hermes.close();sd.close();
  console.log(ok?'ALL PASS':'FAILURES');process.exit(ok?0:1);
 })();

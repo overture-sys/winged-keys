@@ -51,7 +51,7 @@ The easiest way is the packaged build from [Ko-fi](https://ko-fi.com/s/f9fabd561
 
 **Stream Dock:** copy `streamdock/com.wingedkeys.hermes.sdPlugin` into `%APPDATA%\HotSpot\StreamDock\plugins\` and restart the Stream Dock app.
 
-**Elgato Stream Deck (testing only):** copy `elgato/com.wingedkeys.hermes.sdPlugin` into `%APPDATA%\Elgato\StreamDeck\Plugins\` and restart Stream Deck.
+**Elgato Stream Deck (testing only):** copy `elgato/com.overturesys.wingedkeys.sdPlugin` into `%APPDATA%\Elgato\StreamDeck\Plugins\` and restart Stream Deck.
 
 Then drag keys from the **Winged Keys** category and click one. In the settings panel:
 
@@ -119,8 +119,8 @@ node test/models.js  # per-controller checks: keys, touch strip, Stream Dock kno
 node test/agents.js  # Agent key, per-agent routing and keys, New chat
 node test/approve.js # Approve key: preview, deliberate press only, exact request, once/deny only
 node test/modelkey.js  # Model key: model list, dials, the model sent with each Ask run
-PLUGIN=elgato/com.wingedkeys.hermes.sdPlugin node test/test.js
-PLUGIN=elgato/com.wingedkeys.hermes.sdPlugin node test/models.js
+PLUGIN=elgato/com.overturesys.wingedkeys.sdPlugin node test/test.js
+PLUGIN=elgato/com.overturesys.wingedkeys.sdPlugin node test/models.js
 ```
 
 `src/wsclient.js` is a small hand-written WebSocket client so the plugin needs no npm packages.
